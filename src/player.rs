@@ -1,12 +1,12 @@
 use std::time::Duration;
 
-use bevy::core_pipeline::fxaa::Fxaa;
+use bevy::core_pipeline::{clear_color::ClearColorConfig, fxaa::Fxaa};
 use bevy::prelude::*;
 use bevy_tweening::{
     component_animator_system, AnimationSystem, Animator, EaseFunction, Lens, Tween,
 };
 
-use crate::{input::CursorPos};
+use crate::input::CursorPos;
 
 #[derive(Component, Debug)]
 pub struct Player;
@@ -26,6 +26,7 @@ impl Lens<LookTarget> for LookTargetLens {
 }
 
 pub const DEFAULT_LOOK: Vec3 = Vec3::new(0.0, 1.75, 0.0);
+pub const DEADZONE: f32 = 100.0;
 
 pub struct PlayerPlugin;
 
@@ -45,10 +46,11 @@ fn spawn_player(mut cmd: Commands) {
         Camera3dBundle {
             camera: Camera {
                 hdr: true,
+                order: 0,
                 ..default()
             },
 
-            transform: Transform::from_xyz(0.0, 2.0, 4.0),
+            transform: Transform::from_xyz(0.0, 2.0, 3.0),
             ..default()
         },
         Fxaa {
@@ -63,6 +65,16 @@ fn spawn_player(mut cmd: Commands) {
         Player,
         LookTarget(DEFAULT_LOOK),
     ));
+    // cmd.spawn(Camera2dBundle {
+    //     camera_2d: Camera2d {
+    //         clear_color: ClearColorConfig::None,
+    //     },
+    //     camera: Camera {
+    //         order: 1,
+    //         ..default()
+    //     },
+    //     ..default()
+    // });
 }
 
 fn look(mut q: Query<(&mut Transform, &LookTarget), (With<Player>, Changed<LookTarget>)>) {
@@ -81,26 +93,24 @@ fn tilt_camera_toward_mouse(
     }
 
     for (ent, target) in player_q.iter() {
-
-        let new_target = if cursor.abs().x > 50. && cursor.abs().y > 50. {
+        let new_target = if cursor.abs().x > DEADZONE && cursor.abs().y > DEADZONE {
             cursor.extend(0.0).signum() + DEFAULT_LOOK
-        } else if cursor.x < -50. {
+        } else if cursor.x < -DEADZONE {
             Vec3::new(-1.0, 0.0, 0.0) + DEFAULT_LOOK
-        } else if cursor.x > 50. {
+        } else if cursor.x > DEADZONE {
             Vec3::new(1.0, 0.0, 0.0) + DEFAULT_LOOK
-        } else if cursor.y > 50. {
+        } else if cursor.y > DEADZONE {
             Vec3::new(0.0, 1.0, 0.0) + DEFAULT_LOOK
-        } else if cursor.y < -50. {
+        } else if cursor.y < -DEADZONE {
             Vec3::new(0.0, -1.0, 0.0) + DEFAULT_LOOK
         } else {
             DEFAULT_LOOK
         };
 
-        let lens = 
-            LookTargetLens {
-                start: **target,
-                end: new_target,
-            };
+        let lens = LookTargetLens {
+            start: **target,
+            end: new_target,
+        };
 
         let tween = Tween::new(
             EaseFunction::ExponentialOut,
