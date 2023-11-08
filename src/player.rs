@@ -6,7 +6,7 @@ use bevy_tweening::{
     component_animator_system, AnimationSystem, Animator, EaseFunction, Lens, Tween,
 };
 
-use crate::{input::CursorPos, WINDOW_SIZE};
+use crate::{input::CursorPos};
 
 #[derive(Component, Debug)]
 pub struct Player;

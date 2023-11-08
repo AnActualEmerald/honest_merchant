@@ -25,6 +25,6 @@ fn main() {
         .run();
 }
 
-fn setup(mut cmd: Commands) {
+fn setup(_cmd: Commands) {
    // set up stuff
 }

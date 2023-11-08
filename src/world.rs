@@ -1,4 +1,4 @@
-use bevy::{pbr::CascadeShadowConfigBuilder, prelude::*};
+use bevy::{prelude::*};
 
 pub struct WorldPlugin;
 
