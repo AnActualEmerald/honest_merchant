@@ -6,6 +6,7 @@ use bevy_tweening::{
     component_animator_system, AnimationSystem, Animator, EaseFunction, Lens, Tween,
 };
 
+use crate::WINDOW_SIZE;
 use crate::input::CursorPos;
 
 #[derive(Component, Debug)]
@@ -26,7 +27,8 @@ impl Lens<LookTarget> for LookTargetLens {
 }
 
 pub const DEFAULT_LOOK: Vec3 = Vec3::new(0.0, 1.75, 0.0);
-pub const DEADZONE: f32 = 100.0;
+pub const DEADZONE: f32 = (WINDOW_SIZE.y / 2.0) * 0.66;
+pub const LOOK_AMOUNT: f32 = 0.1;
 
 pub struct PlayerPlugin;
 
@@ -94,15 +96,15 @@ fn tilt_camera_toward_mouse(
 
     for (ent, target) in player_q.iter() {
         let new_target = if cursor.abs().x > DEADZONE && cursor.abs().y > DEADZONE {
-            cursor.extend(0.0).signum() + DEFAULT_LOOK
+            cursor.extend(0.0).signum() * Vec3::splat(LOOK_AMOUNT) + DEFAULT_LOOK
         } else if cursor.x < -DEADZONE {
-            Vec3::new(-1.0, 0.0, 0.0) + DEFAULT_LOOK
+            Vec3::new(-LOOK_AMOUNT, 0.0, 0.0) + DEFAULT_LOOK
         } else if cursor.x > DEADZONE {
-            Vec3::new(1.0, 0.0, 0.0) + DEFAULT_LOOK
+            Vec3::new(LOOK_AMOUNT, 0.0, 0.0) + DEFAULT_LOOK
         } else if cursor.y > DEADZONE {
-            Vec3::new(0.0, 1.0, 0.0) + DEFAULT_LOOK
+            Vec3::new(0.0, LOOK_AMOUNT, 0.0) + DEFAULT_LOOK
         } else if cursor.y < -DEADZONE {
-            Vec3::new(0.0, -1.0, 0.0) + DEFAULT_LOOK
+            Vec3::new(0.0, -LOOK_AMOUNT, 0.0) + DEFAULT_LOOK
         } else {
             DEFAULT_LOOK
         };
