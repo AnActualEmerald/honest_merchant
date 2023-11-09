@@ -1,12 +1,20 @@
-use bevy::{core_pipeline::clear_color::ClearColorConfig, prelude::*};
+use bevy::prelude::*;
 use bevy_tweening::TweeningPlugin;
+use game::GamePlugin;
 use input::InputPlugin;
 use player::PlayerPlugin;
+use utils::UtilPlugin;
 use world::WorldPlugin;
+use assets::AssetPlugin;
+
 
 mod input;
 mod player;
 mod world;
+mod crowd;
+mod game;
+mod assets;
+mod utils;
 
 pub const WINDOW_SIZE: Vec2 = Vec2::new(800.0, 600.0);
 
@@ -23,7 +31,7 @@ fn main() {
             }),
             TweeningPlugin,
         ))
-        .add_plugins((InputPlugin, WorldPlugin, PlayerPlugin))
+        .add_plugins((UtilPlugin, AssetPlugin, InputPlugin, WorldPlugin, GamePlugin, PlayerPlugin))
         .add_systems(Startup, setup)
         .run();
 }

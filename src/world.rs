@@ -46,10 +46,10 @@ fn spawn_world(
     // });
 
     // lights
-    // cmd.insert_resource(AmbientLight {
-    //     color: Color::WHITE,
-    //     brightness: 0.5,
-    // });
+    cmd.insert_resource(AmbientLight {
+        color: Color::WHITE,
+        brightness: 0.2,
+    });
     // cmd.spawn(PointLightBundle {
     //     point_light: PointLight {
     //         intensity: 1500.0,

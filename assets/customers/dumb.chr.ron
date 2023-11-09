@@ -1,0 +1,11 @@
+(
+    name: "dumb",
+    greeting: [
+        "Wonderful weather we're having",
+    ],
+    request: (
+        kind: SpiderEyes,
+        amount: 10.0,
+    ),
+    attention_type: Distracted
+)
