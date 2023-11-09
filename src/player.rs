@@ -5,12 +5,12 @@ use bevy::prelude::*;
 use bevy_tweening::{
     component_animator_system, AnimationSystem, Animator, EaseFunction, Lens, Tween,
 };
-use leafwing_input_manager::InputManagerBundle;
 use leafwing_input_manager::prelude::InputMap;
 use leafwing_input_manager::user_input::InputKind;
+use leafwing_input_manager::InputManagerBundle;
 
+use crate::input::{Action, CursorPos};
 use crate::WINDOW_SIZE;
-use crate::input::{CursorPos, Action};
 
 #[derive(Component, Debug)]
 pub struct Player;
@@ -69,13 +69,6 @@ fn spawn_player(mut cmd: Commands) {
         },
         Player,
         LookTarget(DEFAULT_LOOK),
-        InputManagerBundle {
-            input_map: InputMap::new([
-                (InputKind::Keyboard(KeyCode::Space), Action::Advance),
-                (InputKind::Mouse(MouseButton::Left), Action::Advance)
-            ]),
-            ..default()
-        }
     ));
     // cmd.spawn(Camera2dBundle {
     //     camera_2d: Camera2d {

@@ -1,13 +1,16 @@
 use bevy::{asset::LoadedFolder, prelude::*};
 use serde::Deserialize;
 
-use crate::{assets::Characteristics, utils::spawn_text_box};
+use crate::{
+    assets::Characteristics,
+    utils::{despawn_all, spawn_text_box, text_box::TextBox},
+};
 
-use super::GameState;
+use super::{Advance, GameState, TargetWeight};
 
 #[allow(dead_code)]
 #[derive(Debug, Default, States, Clone, Copy, Hash, PartialEq, Eq)]
-pub enum InteractionState {
+pub enum CustomerState {
     Greeting,
     Request,
     Measuring,
@@ -35,7 +38,7 @@ pub struct CustomerPlugin;
 
 impl Plugin for CustomerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_state::<InteractionState>()
+        app.add_state::<CustomerState>()
             .add_systems(Startup, |mut cmd: Commands, ass: Res<AssetServer>| {
                 // preload (or try to preload) all the customer character files
                 #[cfg(not(target_family = "wasm"))]
@@ -51,8 +54,13 @@ impl Plugin for CustomerPlugin {
                     cmd.insert_resource(CustomerAssets(res));
                 }
             })
-            .add_systems(OnEnter(GameState::Customer), spawn_customer)
-            .add_systems(OnEnter(InteractionState::Greeting), show_greeting);
+            .add_systems(Update, wait_to_advance)
+            .add_systems(Update, show_text.run_if(state_changed::<CustomerState>()))
+            .add_systems(
+                Update,
+                despawn_all::<TextBox>.run_if(state_changed::<CustomerState>()),
+            )
+            .add_systems(OnEnter(GameState::Customer), spawn_customer);
     }
 }
 
@@ -61,7 +69,7 @@ fn spawn_customer(
     mut cmd: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut state: ResMut<NextState<InteractionState>>,
+    mut state: ResMut<NextState<CustomerState>>,
 ) {
     cmd.spawn((
         PbrBundle {
@@ -82,10 +90,40 @@ fn spawn_customer(
         }),
     ));
 
-    state.set(InteractionState::Greeting);
+    state.set(CustomerState::Greeting);
 }
 
-fn show_greeting(mut cmd: Commands, cust_q: Query<&Customer>) {
-    let Customer(ty) = cust_q.single();
-    spawn_text_box(&mut cmd, &ty.greeting[0]);
+fn show_text(mut cmd: Commands, cust_q: Query<&Customer>, state: Res<State<CustomerState>>) {
+    let Ok(Customer(ty)) = cust_q.get_single() else {
+        return;
+    };
+    match **state {
+        CustomerState::Greeting => {
+            spawn_text_box(&mut cmd, &ty.greeting[0]);
+        }
+        CustomerState::Request => {
+            let req_text = format!("{} please", ty.request);
+            spawn_text_box(&mut cmd, req_text);
+            cmd.insert_resource(TargetWeight::from(ty.request));
+        }
+        _ => {}
+    }
+}
+
+fn wait_to_advance(
+    current_state: Res<State<CustomerState>>,
+    mut state: ResMut<NextState<CustomerState>>,
+    mut er: EventReader<Advance>,
+) {
+    for _event in er.read() {
+        match **current_state {
+            CustomerState::Greeting => {
+                state.set(CustomerState::Request);
+            }
+            CustomerState::Request => {
+                state.set(CustomerState::Measuring);
+            }
+            _ => {}
+        }
+    }
 }

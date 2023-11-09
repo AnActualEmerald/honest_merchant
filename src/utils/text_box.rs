@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 #[derive(Component)]
-pub struct TextBoxConfig {
+pub struct TextBox {
     pub timer: Timer,
     pub index: usize,
     pub text: String,
@@ -29,10 +29,10 @@ pub fn spawn_text_box(cmd: &mut Commands, text: impl Into<String>) -> Entity {
             background_color: Color::DARK_GRAY.into(),
             ..default()
         },
-        TextBoxConfig {
+        TextBox {
             timer: Timer::from_seconds(0.01, TimerMode::Repeating),
             index: 0,
-            text: text.into()
+            text: text.into(),
         },
     ));
     let text = cmd

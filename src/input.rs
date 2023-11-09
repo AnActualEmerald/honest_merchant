@@ -1,15 +1,18 @@
 pub use bevy::prelude::*;
-use leafwing_input_manager::{prelude::InputManagerPlugin, Actionlike};
+use leafwing_input_manager::{
+    prelude::{ActionState, InputManagerPlugin, InputMap},
+    user_input::InputKind,
+    Actionlike,
+};
 
 use crate::WINDOW_SIZE;
 
 #[derive(Resource, Deref, DerefMut, Default, Debug)]
 pub struct CursorPos(Vec2);
 
-
 #[derive(Actionlike, TypePath, Clone, Copy)]
 pub enum Action {
-    Advance
+    Advance,
 }
 
 pub struct InputPlugin;
@@ -17,6 +20,11 @@ pub struct InputPlugin;
 impl Plugin for InputPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<CursorPos>()
+            .init_resource::<ActionState<Action>>()
+            .insert_resource(InputMap::new([
+                (InputKind::Keyboard(KeyCode::Space), Action::Advance),
+                (InputKind::Mouse(MouseButton::Left), Action::Advance),
+            ]))
             .add_plugins(InputManagerPlugin::<Action>::default())
             .add_systems(PreUpdate, update_cursor_pos);
     }

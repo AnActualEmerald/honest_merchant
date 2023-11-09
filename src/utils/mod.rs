@@ -1,21 +1,27 @@
 pub mod text_box;
+use leafwing_input_manager::prelude::ActionState;
 pub use text_box::spawn_text_box;
 
 use bevy::prelude::*;
 
-use self::text_box::{TextBoxConfig, TextChild};
+use crate::{game::Advance, input::Action};
+
+use self::text_box::{TextBox, TextChild};
 
 pub struct UtilPlugin;
 
 impl Plugin for UtilPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(PreUpdate, step_text);
+        app.add_systems(Update, step_text);
     }
 }
 
+// this is maybe too much for a single system to do?
 fn step_text(
-    mut box_q: Query<(&mut TextBoxConfig, &TextChild)>,
+    mut box_q: Query<(&mut TextBox, &TextChild)>,
     mut text_q: Query<&mut Text>,
+    actions: Res<ActionState<Action>>,
+    mut ew: EventWriter<Advance>,
     time: Res<Time>,
 ) {
     for (mut b, child) in box_q.iter_mut() {
@@ -28,8 +34,31 @@ fn step_text(
 
                 b.index += 1;
             } else {
-                //TODO: listed for advance signal?
+                if actions.pressed(Action::Advance) {
+                    // twice as fast text I think?
+                    b.timer.tick(time.delta());
+                }
+            }
+        } else {
+            if actions.just_pressed(Action::Advance) {
+                ew.send_default();
             }
         }
+    }
+}
+
+pub fn despawn_all<T: Component>(mut cmd: Commands, q: Query<Entity, With<T>>) {
+    for ent in q.iter() {
+        cmd.entity(ent).despawn_recursive();
+    }
+}
+
+pub trait Approx {
+    fn is_about(self, target: Self, error: Self) -> bool;
+}
+
+impl Approx for f32 {
+    fn is_about(self, target: Self, error: Self) -> bool {
+        self <= target + error && self >= target - error
     }
 }
