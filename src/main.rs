@@ -1,5 +1,6 @@
 use bevy::prelude::*;
 use bevy_tweening::TweeningPlugin;
+use bevy_mod_picking::prelude::*;
 use game::GamePlugin;
 use input::InputPlugin;
 use player::PlayerPlugin;
@@ -30,6 +31,7 @@ fn main() {
                 ..default()
             }),
             TweeningPlugin,
+            DefaultPickingPlugins,
         ))
         .add_plugins((UtilPlugin, AssetPlugin, InputPlugin, WorldPlugin, GamePlugin, PlayerPlugin))
         .add_systems(Startup, setup)

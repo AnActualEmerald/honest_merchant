@@ -1,5 +1,5 @@
 use bevy::{asset::LoadedFolder, prelude::*};
-use serde::Deserialize;
+
 
 use crate::{
     assets::Characteristics,

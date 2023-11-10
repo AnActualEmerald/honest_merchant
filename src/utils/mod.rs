@@ -53,6 +53,16 @@ pub fn despawn_all<T: Component>(mut cmd: Commands, q: Query<Entity, With<T>>) {
     }
 }
 
+pub trait RoundTo {
+    fn round_to(self, precision: i32) -> Self;
+}
+
+impl RoundTo for f32 {
+    fn round_to(self, precision: i32) -> Self {
+        (self * (10 as Self).powi(precision)).round() / (10.0 as Self).powi(precision)
+    }
+}
+
 pub trait Approx {
     fn is_about(self, target: Self, error: Self) -> bool;
 }

@@ -532,6 +532,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_eventlistener"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "81ec9ab6b92cb8db944d5e72017892eb9fe9d964c9195104320ba20081acc437"
+dependencies = [
+ "bevy_eventlistener_core",
+ "bevy_eventlistener_derive",
+]
+
+[[package]]
+name = "bevy_eventlistener_core"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ae5e7b14788e7635d731dff17b1e3bd3f3f748b70ed98f9be400b7bac9d4a941"
+dependencies = [
+ "bevy_app",
+ "bevy_ecs",
+ "bevy_hierarchy",
+ "bevy_utils",
+]
+
+[[package]]
+name = "bevy_eventlistener_derive"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c6a13f388de6f4e809c15130c3251f60921ab4d0db37cc9ccce36f2296eeb73d"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.39",
+]
+
+[[package]]
 name = "bevy_gilrs"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -715,6 +748,40 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_mod_picking"
+version = "0.17.0"
+source = "git+https://github.com/TristanCacqueray/bevy_mod_picking.git?branch=bevy-0.12#a152595bc23afe971e7ce6a499d54e560bcec1b2"
+dependencies = [
+ "bevy_app",
+ "bevy_core",
+ "bevy_ecs",
+ "bevy_eventlistener",
+ "bevy_math",
+ "bevy_picking_core",
+ "bevy_picking_highlight",
+ "bevy_picking_input",
+ "bevy_picking_raycast",
+ "bevy_picking_selection",
+ "bevy_picking_sprite",
+ "bevy_picking_ui",
+ "bevy_reflect",
+ "bevy_render",
+ "bevy_text",
+ "bevy_ui",
+ "bevy_utils",
+ "bevy_window",
+]
+
+[[package]]
+name = "bevy_mod_raycast"
+version = "0.16.0"
+source = "git+https://github.com/TristanCacqueray/bevy_mod_raycast.git?branch=bevy-0.12#8faa3c850bcc05fc020876e6e98c42fa5258a669"
+dependencies = [
+ "bevy",
+ "crossbeam-channel",
+]
+
+[[package]]
 name = "bevy_pbr"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -738,6 +805,116 @@ dependencies = [
  "radsort",
  "smallvec",
  "thread_local",
+]
+
+[[package]]
+name = "bevy_picking_core"
+version = "0.17.0"
+source = "git+https://github.com/TristanCacqueray/bevy_mod_picking.git?branch=bevy-0.12#a152595bc23afe971e7ce6a499d54e560bcec1b2"
+dependencies = [
+ "bevy_app",
+ "bevy_derive",
+ "bevy_ecs",
+ "bevy_eventlistener",
+ "bevy_math",
+ "bevy_reflect",
+ "bevy_render",
+ "bevy_utils",
+ "bevy_window",
+]
+
+[[package]]
+name = "bevy_picking_highlight"
+version = "0.17.0"
+source = "git+https://github.com/TristanCacqueray/bevy_mod_picking.git?branch=bevy-0.12#a152595bc23afe971e7ce6a499d54e560bcec1b2"
+dependencies = [
+ "bevy_app",
+ "bevy_asset",
+ "bevy_ecs",
+ "bevy_pbr",
+ "bevy_picking_core",
+ "bevy_picking_selection",
+ "bevy_reflect",
+ "bevy_render",
+ "bevy_sprite",
+]
+
+[[package]]
+name = "bevy_picking_input"
+version = "0.17.0"
+source = "git+https://github.com/TristanCacqueray/bevy_mod_picking.git?branch=bevy-0.12#a152595bc23afe971e7ce6a499d54e560bcec1b2"
+dependencies = [
+ "bevy_app",
+ "bevy_ecs",
+ "bevy_hierarchy",
+ "bevy_input",
+ "bevy_math",
+ "bevy_picking_core",
+ "bevy_picking_selection",
+ "bevy_reflect",
+ "bevy_render",
+ "bevy_utils",
+ "bevy_window",
+]
+
+[[package]]
+name = "bevy_picking_raycast"
+version = "0.17.0"
+source = "git+https://github.com/TristanCacqueray/bevy_mod_picking.git?branch=bevy-0.12#a152595bc23afe971e7ce6a499d54e560bcec1b2"
+dependencies = [
+ "bevy_app",
+ "bevy_ecs",
+ "bevy_mod_raycast",
+ "bevy_picking_core",
+ "bevy_reflect",
+ "bevy_render",
+ "bevy_transform",
+ "bevy_window",
+]
+
+[[package]]
+name = "bevy_picking_selection"
+version = "0.17.0"
+source = "git+https://github.com/TristanCacqueray/bevy_mod_picking.git?branch=bevy-0.12#a152595bc23afe971e7ce6a499d54e560bcec1b2"
+dependencies = [
+ "bevy_app",
+ "bevy_ecs",
+ "bevy_eventlistener",
+ "bevy_input",
+ "bevy_picking_core",
+ "bevy_reflect",
+ "bevy_utils",
+]
+
+[[package]]
+name = "bevy_picking_sprite"
+version = "0.17.0"
+source = "git+https://github.com/TristanCacqueray/bevy_mod_picking.git?branch=bevy-0.12#a152595bc23afe971e7ce6a499d54e560bcec1b2"
+dependencies = [
+ "bevy_app",
+ "bevy_asset",
+ "bevy_ecs",
+ "bevy_math",
+ "bevy_picking_core",
+ "bevy_render",
+ "bevy_sprite",
+ "bevy_transform",
+ "bevy_window",
+]
+
+[[package]]
+name = "bevy_picking_ui"
+version = "0.17.0"
+source = "git+https://github.com/TristanCacqueray/bevy_mod_picking.git?branch=bevy-0.12#a152595bc23afe971e7ce6a499d54e560bcec1b2"
+dependencies = [
+ "bevy_app",
+ "bevy_ecs",
+ "bevy_math",
+ "bevy_picking_core",
+ "bevy_render",
+ "bevy_transform",
+ "bevy_ui",
+ "bevy_window",
 ]
 
 [[package]]
@@ -1917,6 +2094,7 @@ name = "honest_merchant"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy_mod_picking",
  "bevy_tweening",
  "leafwing-input-manager",
  "ron",

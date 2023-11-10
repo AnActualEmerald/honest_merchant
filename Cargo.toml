@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 bevy = "0.12.0"
 bevy_tweening = { version = "0.9.0", default-features = false }
+bevy_mod_picking = "0.17"
 leafwing-input-manager = "0.11.1"
 ron = "0.8.1"
 serde = { version = "1.0.192", features = ["derive"] }
@@ -23,3 +24,6 @@ opt-level = 1
 opt-level = "z"
 lto = "thin"
 
+[patch.crates-io]
+bevy_mod_picking = { git = "https://github.com/TristanCacqueray/bevy_mod_picking.git", branch = "bevy-0.12"}
+bevy_mod_raycast = { git = "https://github.com/TristanCacqueray/bevy_mod_raycast.git", branch = "bevy-0.12"}

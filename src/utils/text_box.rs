@@ -15,7 +15,7 @@ pub fn spawn_text_box(cmd: &mut Commands, text: impl Into<String>) -> Entity {
     cmd.entity(root).insert((
         NodeBundle {
             style: Style {
-                width: Val::Percent(80.0),
+                width: Val::Percent(75.0),
                 height: Val::Percent(30.0),
                 align_self: AlignSelf::Center,
                 align_items: AlignItems::FlexStart,
