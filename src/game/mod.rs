@@ -1,7 +1,10 @@
 use bevy::prelude::*;
 use serde::Deserialize;
 
-use self::{customer::CustomerPlugin, scales::ScalesPlugin};
+use self::{
+    customer::{CustomerPlugin, CustomerState},
+    scales::ScalesPlugin,
+};
 
 mod customer;
 mod scales;
@@ -9,7 +12,7 @@ mod scales;
 #[derive(Event, Default, Debug, Clone, Copy)]
 pub struct Advance;
 
-#[derive(Resource, Debug, Clone, Copy, Deref)]
+#[derive(Resource, Debug, Clone, Copy, Deref, Default)]
 pub struct TargetWeight(f32);
 
 impl From<ItemType> for TargetWeight {
@@ -83,11 +86,28 @@ impl Plugin for GamePlugin {
         app.add_plugins((CustomerPlugin, ScalesPlugin))
             .add_state::<GameState>()
             .add_event::<Advance>()
-            .insert_resource(CustomerTimer(Timer::from_seconds(5.0, TimerMode::Once)))
+            .insert_resource(CustomerTimer(Timer::from_seconds(
+                5.0,
+                TimerMode::Repeating,
+            )))
             .add_systems(
                 PreUpdate,
-                wait_for_customer.run_if(resource_exists::<CustomerTimer>()),
+                wait_for_customer.run_if(
+                    resource_exists::<CustomerTimer>().and_then(in_state(GameState::Waiting)),
+                ),
+            )
+            .add_systems(
+                Update,
+                (customer_end).run_if(
+                    in_state(GameState::Customer).and_then(state_changed::<CustomerState>()),
+                ),
             );
+    }
+}
+
+fn customer_end(mut state: ResMut<NextState<GameState>>, cust_state: Res<State<CustomerState>>) {
+    if CustomerState::End == **cust_state {
+        state.set(GameState::Waiting);
     }
 }
 

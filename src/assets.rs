@@ -11,7 +11,7 @@ pub struct AssetPlugin;
 
 impl Plugin for AssetPlugin {
     fn build(&self, app: &mut App) {
-        app.init_asset::<Characteristics>()
+        app.init_asset::<CharacterTraits>()
             .init_asset_loader::<CharacteristicsLoader>();
     }
 }
@@ -27,18 +27,22 @@ pub enum LoaderError {
 // character files
 
 #[derive(Asset, TypePath, Debug, Deserialize)]
-pub struct Characteristics {
+pub struct CharacterTraits {
     pub name: String,
     pub greeting: Vec<String>,
+    pub thinking: String,
+    pub thank: String,
+    pub accuse: String,
     pub request: ItemType,
     pub attention_type: AttentionType,
+    pub max_gold: u32
 }
 
 #[derive(Default)]
 pub struct CharacteristicsLoader;
 
 impl AssetLoader for CharacteristicsLoader {
-    type Asset = Characteristics;
+    type Asset = CharacterTraits;
 
     type Settings = ();
 

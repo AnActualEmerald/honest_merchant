@@ -3,9 +3,13 @@
     greeting: [
         "Wonderful weather we're having",
     ],
+    thinking: "Hmm...",
+    thank: "Ah, perfect!",
+    accuse: "Hey, what are you trying to pull!",
     request: (
         kind: SpiderEyes,
         amount: 10.0,
     ),
-    attention_type: Distracted
+    attention_type: Distracted,
+    max_gold: 100
 )
