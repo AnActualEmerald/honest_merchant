@@ -1,14 +1,13 @@
 use std::time::Duration;
 
-use bevy::{prelude::*, transform::TransformSystem};
+use bevy::{prelude::*, utils::HashMap};
 use bevy_mod_picking::prelude::*;
 use bevy_tweening::{lens::TransformRotationLens, *};
 
-use crate::utils::{Approx, RoundTo};
+use super::goods::{ItemType, ITEM_COLORS, RemoveItem};
 
-use super::TargetWeight;
-
-pub const MAX_ROTATION_DEGREES: f32 = 45.0;
+pub const MAX_ROTATION_DEGREES: f32 = 30.0;
+pub const SCALE_WIDTH: f32 = 3.0;
 pub const WEIGHTS: [f32; 6] = [10.0, 5.0, 4.0, 3.0, 2.0, 1.0];
 
 #[derive(Resource, Deref, Debug)]
@@ -49,6 +48,9 @@ pub struct Mass(f32);
 #[derive(Component, Debug, Clone, Copy, Deref, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Index(usize);
 
+#[derive(Resource, Default, Clone, Deref, DerefMut, Debug)]
+pub struct ScaleContents(HashMap<ItemType, f32>);
+
 #[derive(Component, Debug)]
 pub struct OnScale;
 
@@ -76,12 +78,13 @@ impl Plugin for ScalesPlugin {
             .add_event::<RemoveWeight>()
             .add_event::<Submit>()
             .init_resource::<ScaleWeights>()
+            .init_resource::<ScaleContents>()
             .add_systems(Startup, setup_scales)
             // .add_systems(PostUpdate, place_weights.after(TransformSystem::TransformPropagate))
-            .add_systems(Update, (add_weights, remove_weights, update_scale_rot))
+            .add_systems(Update, (add_weights, remove_weights, update_scale_rot, scale_piles))
             .add_systems(
                 Update,
-                set_weight.run_if(resource_exists_and_changed::<TargetWeight>()),
+                set_weight.run_if(resource_exists_and_changed::<ScaleContents>()),
             );
 
         let mut table_points = vec![];
@@ -103,7 +106,7 @@ impl Plugin for ScalesPlugin {
             let z = 0.25 - ((i as f32 % 2.0) / 2.0);
             info!("Add weight at {x:.2},{z:.2}");
             let points = Transform::from_xyz(
-                -1.0 + x,
+                -SCALE_WIDTH / 2.0 + x,
                 0.5 + ((0.25 / (WEIGHTS.len() - i) as f32) / 2.0),
                 z,
             )
@@ -115,14 +118,14 @@ impl Plugin for ScalesPlugin {
 }
 
 pub fn reset(
-    mut cmd: Commands,
     mut scale_weights: ResMut<ScaleWeights>,
+    mut contents: ResMut<ScaleContents>,
     mut table_masses: Query<&mut Visibility, (With<Mass>, Without<OnScale>)>,
-    mut scale_masses: Query<&mut Visibility, With<OnScale>>,
-
+    mut scale_masses: Query<&mut Visibility, (With<OnScale>, Without<ItemType>)>,
 ) {
     scale_weights.left = 0.0;
     scale_weights.right = 0.0;
+    *contents = ScaleContents::default();
 
     // cmd.entity(ent).remove_children(&masses.iter().collect::<Vec<Entity>>());
     for mut m in table_masses.iter_mut() {
@@ -132,7 +135,6 @@ pub fn reset(
     for mut m in scale_masses.iter_mut() {
         *m = Visibility::Hidden;
     }
-
 }
 
 // TODO: use proper models and whatever
@@ -141,9 +143,9 @@ fn setup_scales(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     table_points: Res<TablePoints>,
-    scale_points: Res<ScalePoints>
+    scale_points: Res<ScalePoints>,
 ) {
-    let mesh = meshes.add(Mesh::from(shape::Box::new(2.0, 1.0, 1.0)));
+    let mesh = meshes.add(Mesh::from(shape::Box::new(3.0, 1.0, 1.0)));
     let mat = materials.add(Color::BEIGE.into());
     let weight_mesh = meshes.add(Mesh::from(shape::Cylinder {
         radius: 0.5,
@@ -179,6 +181,38 @@ fn setup_scales(
                 OnScale,
                 On::<Pointer<Down>>::send_event::<RemoveWeight>(),
             ));
+        }
+
+        let mut row = -1.0;
+        for (i, col) in ITEM_COLORS.iter().enumerate() {
+            let Some(t) = ItemType::from_repr(i) else {
+                continue;
+            };
+
+            if i as f32 % 2.0 == 0.0 {
+                row += 1.0;
+            }
+
+            parent.spawn((
+                PbrBundle {
+                    mesh: meshes.add(
+                        shape::Icosphere {
+                            radius: 0.25,
+                            ..default()
+                        }
+                        .try_into()
+                        .unwrap(),
+                    ),
+                    material: materials.add((*col).into()),
+                    transform: Transform::from_xyz( SCALE_WIDTH / 2.0 - 0.25 - (i as f32 % 2.0) / 2.0 , 0.5, -0.25 + (row / 2.0)).with_scale(Vec3::ZERO),
+                    ..default()
+                },
+                t,
+                OnScale,
+                On::<Pointer<Down>>::send_event::<RemoveItem>()
+            ));
+
+            
         }
     });
 
@@ -270,8 +304,17 @@ fn remove_weights(
     }
 }
 
-fn set_weight(mut scale_weights: ResMut<ScaleWeights>, w: Res<TargetWeight>) {
-    scale_weights.right = **w;
+fn set_weight(mut scale_weights: ResMut<ScaleWeights>, contents: Res<ScaleContents>) {
+    let weight = contents.values().fold(0.0, |last, v| last + v);
+    scale_weights.right = weight;
+}
+
+fn scale_piles(mut q: Query<(&mut Transform, &ItemType), With<OnScale>>, contents: Res<ScaleContents>) {
+    for (mut tr, ty) in q.iter_mut() {
+        let scale = *contents.get(ty).unwrap_or(&0.0);
+        tr.scale = Vec3::splat(scale.powf(0.25));
+    }
+
 }
 
 fn update_scale_rot(

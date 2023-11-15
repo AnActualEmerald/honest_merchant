@@ -750,7 +750,8 @@ dependencies = [
 [[package]]
 name = "bevy_mod_picking"
 version = "0.17.0"
-source = "git+https://github.com/TristanCacqueray/bevy_mod_picking.git?branch=bevy-0.12#a152595bc23afe971e7ce6a499d54e560bcec1b2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2392df63bc272d5a546633e0a19ef6d428173e3dd22bad0da0a59c6fddd6f2cf"
 dependencies = [
  "bevy_app",
  "bevy_core",
@@ -775,9 +776,21 @@ dependencies = [
 [[package]]
 name = "bevy_mod_raycast"
 version = "0.16.0"
-source = "git+https://github.com/TristanCacqueray/bevy_mod_raycast.git?branch=bevy-0.12#8faa3c850bcc05fc020876e6e98c42fa5258a669"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6b127622dcbfd9e6a1661219af65965625901c2549b434f0c44c4460dd055dce"
 dependencies = [
- "bevy",
+ "bevy_app",
+ "bevy_asset",
+ "bevy_derive",
+ "bevy_ecs",
+ "bevy_gizmos",
+ "bevy_math",
+ "bevy_reflect",
+ "bevy_render",
+ "bevy_sprite",
+ "bevy_transform",
+ "bevy_utils",
+ "bevy_window",
  "crossbeam-channel",
 ]
 
@@ -810,7 +823,8 @@ dependencies = [
 [[package]]
 name = "bevy_picking_core"
 version = "0.17.0"
-source = "git+https://github.com/TristanCacqueray/bevy_mod_picking.git?branch=bevy-0.12#a152595bc23afe971e7ce6a499d54e560bcec1b2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0799488c4505d68886209afd77ff9c898b634abf7f97fffa8ae37a356cbc8ab2"
 dependencies = [
  "bevy_app",
  "bevy_derive",
@@ -826,7 +840,8 @@ dependencies = [
 [[package]]
 name = "bevy_picking_highlight"
 version = "0.17.0"
-source = "git+https://github.com/TristanCacqueray/bevy_mod_picking.git?branch=bevy-0.12#a152595bc23afe971e7ce6a499d54e560bcec1b2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3cfada25fcbd459b0ecd57a3bb2861820915744bfabadef141a0881a06a7199"
 dependencies = [
  "bevy_app",
  "bevy_asset",
@@ -842,7 +857,8 @@ dependencies = [
 [[package]]
 name = "bevy_picking_input"
 version = "0.17.0"
-source = "git+https://github.com/TristanCacqueray/bevy_mod_picking.git?branch=bevy-0.12#a152595bc23afe971e7ce6a499d54e560bcec1b2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "16a2b375461e3965c2bd4357d53c772eeafa4747812f54be09de373c0c203da4"
 dependencies = [
  "bevy_app",
  "bevy_ecs",
@@ -860,7 +876,8 @@ dependencies = [
 [[package]]
 name = "bevy_picking_raycast"
 version = "0.17.0"
-source = "git+https://github.com/TristanCacqueray/bevy_mod_picking.git?branch=bevy-0.12#a152595bc23afe971e7ce6a499d54e560bcec1b2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0a2b76420a1e6d9c0fdd4f35056ffb2cfaa052d102d5b1951f517d9fd36b25ab"
 dependencies = [
  "bevy_app",
  "bevy_ecs",
@@ -875,7 +892,8 @@ dependencies = [
 [[package]]
 name = "bevy_picking_selection"
 version = "0.17.0"
-source = "git+https://github.com/TristanCacqueray/bevy_mod_picking.git?branch=bevy-0.12#a152595bc23afe971e7ce6a499d54e560bcec1b2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "814c784c957653ab0baf77ff5563a90d4150f704ba0a173f9de8abe3037f803c"
 dependencies = [
  "bevy_app",
  "bevy_ecs",
@@ -889,7 +907,8 @@ dependencies = [
 [[package]]
 name = "bevy_picking_sprite"
 version = "0.17.0"
-source = "git+https://github.com/TristanCacqueray/bevy_mod_picking.git?branch=bevy-0.12#a152595bc23afe971e7ce6a499d54e560bcec1b2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cefe1b3172b06f93887f0ed8a01f8796e2d7486fe68a37035e38f59244c88663"
 dependencies = [
  "bevy_app",
  "bevy_asset",
@@ -905,7 +924,8 @@ dependencies = [
 [[package]]
 name = "bevy_picking_ui"
 version = "0.17.0"
-source = "git+https://github.com/TristanCacqueray/bevy_mod_picking.git?branch=bevy-0.12#a152595bc23afe971e7ce6a499d54e560bcec1b2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a020364f01021b1faf9cc4de85b592505440d5b6274fb39c9d9a916b7639872b"
 dependencies = [
  "bevy_app",
  "bevy_ecs",
@@ -2074,6 +2094,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "heck"
+version = "0.4.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95505c38b4572b2d910cecb0281560f54b440a19336cbbcb27bf6ce6adc6f5a8"
+
+[[package]]
 name = "hexasphere"
 version = "9.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2100,6 +2126,7 @@ dependencies = [
  "rand",
  "ron",
  "serde",
+ "strum",
  "thiserror",
 ]
 
@@ -3097,6 +3124,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "08d43f7aa6b08d49f382cde6a7982047c3426db949b1424bc4b7ec9ae12c6ce2"
 
 [[package]]
+name = "rustversion"
+version = "1.0.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7ffc183a10b4478d04cbbbfc96d0873219d962dd5accaff2ffbd4ceb7df837f4"
+
+[[package]]
 name = "ruzstd"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3231,6 +3264,28 @@ name = "static_assertions"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
+
+[[package]]
+name = "strum"
+version = "0.25.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "290d54ea6f91c969195bdbcd7442c8c2a2ba87da8bf60a7ee86a235d4bc1e125"
+dependencies = [
+ "strum_macros",
+]
+
+[[package]]
+name = "strum_macros"
+version = "0.25.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23dc1fa9ac9c169a78ba62f0b841814b7abae11bdd047b9c58f893439e309ea0"
+dependencies = [
+ "heck",
+ "proc-macro2",
+ "quote",
+ "rustversion",
+ "syn 2.0.39",
+]
 
 [[package]]
 name = "svg_fmt"

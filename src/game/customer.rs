@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use bevy::{asset::LoadedFolder, prelude::*};
+use bevy::{asset::LoadedFolder, prelude::*, utils::HashMap};
 
 use crate::{
     assets::CharacterTraits,
@@ -8,7 +8,8 @@ use crate::{
 };
 
 use super::{
-    scales::{self, ScaleWeights, Submit},
+    goods::ItemType,
+    scales::{self, ScaleWeights, Submit, ScaleContents},
     Advance, GameState, TargetWeight,
 };
 
@@ -19,6 +20,7 @@ pub enum CustomerState {
     Request,
     Measuring,
     Review,
+    Reject,
     Angry,
     Payment,
     #[default]
@@ -61,7 +63,10 @@ impl Plugin for CustomerPlugin {
                 }
             })
             .add_systems(Update, (handle_submit, wait_to_advance))
-            .add_systems(Update, handle_review.run_if(in_state(CustomerState::Review)))
+            .add_systems(
+                Update,
+                handle_review.run_if(in_state(CustomerState::Review)),
+            )
             .add_systems(Update, show_text.run_if(state_changed::<CustomerState>()))
             .add_systems(
                 Update,
@@ -98,9 +103,10 @@ fn spawn_customer(
             name: "dumb".into(),
             greeting: vec!["Wonderful weather we're having".into()],
             thinking: "Hmm...".into(),
-            thank: "Ah, perfect!".into(),
+            accept: "Ah, perfect!".into(),
+            reject: "Uh, no. I don't think that's right.".into(),
             accuse: "Hey! What are you trying to pull!".into(),
-            request: super::ItemType::SpiderEyes(10.0),
+            request: super::ItemRequest(HashMap::from([(ItemType::SpiderEyes, 10.0)])),
             attention_type: super::AttentionType::Distracted,
             max_gold: 100,
         })),
@@ -110,7 +116,7 @@ fn spawn_customer(
 }
 
 fn cleanup(mut tw: ResMut<TargetWeight>) {
-    *tw = TargetWeight(0.0);
+    *tw = TargetWeight::default();
 }
 
 fn show_text(
@@ -133,14 +139,19 @@ fn show_text(
             CustomerState::Request => {
                 let req_text = format!("{} please", ty.request);
                 spawn_text_box(&mut cmd, req_text);
-                cmd.insert_resource(TargetWeight::from(ty.request));
+                cmd.insert_resource(TargetWeight::from(&ty.request));
+            }
+            CustomerState::Review => {
+                spawn_text_box(&mut cmd, &ty.thinking);
             }
             CustomerState::Payment => {
-                spawn_text_box(&mut cmd, format!("{} Here's {} gold", ty.thank, ty.max_gold));
+                spawn_text_box(
+                    &mut cmd,
+                    format!("{} Here's {} gold", ty.accept, ty.max_gold),
+                );
             }
-            CustomerState::Angry => {
-                spawn_text_box(&mut cmd, format!("{}", ty.accuse));
-
+            CustomerState::Reject => {
+                spawn_text_box(&mut cmd, &ty.reject);
             }
             _ => {}
         }
@@ -167,45 +178,40 @@ fn wait_to_advance(
             CustomerState::Payment | CustomerState::Angry => {
                 state.set(CustomerState::End);
             }
+            CustomerState::Reject => {
+                state.set(CustomerState::Measuring);
+            }
             _ => {}
         }
     }
 }
 
 fn handle_review(
-    mut cmd: Commands,
-    q: Query<&Customer>,
     scale_weights: Res<ScaleWeights>,
-    chars: Res<Assets<CharacterTraits>>,
+    contents: Res<ScaleContents>,
+    target: Res<TargetWeight>,
     mut timer: Local<Timer>,
     time: Res<Time>,
-    mut state: ResMut<NextState<CustomerState>>
+    mut state: ResMut<NextState<CustomerState>>,
 ) {
-    for cust in q.iter() {
-        let Some(c) = chars.get(&cust.0) else {
-            return;
-        };
-        if !timer.finished() {
-            timer.tick(time.delta());
+    if !timer.finished() {
+        timer.tick(time.delta());
 
-            if timer.just_finished() {
-                if !scale_weights.is_even() {
-                    state.set(CustomerState::Angry);
-                } else {
-                    state.set(CustomerState::Payment);
-                }
+        if timer.just_finished() {
+            info!("{contents:?} vs {target:?}");
+            if scale_weights.is_even() && **contents == **target {
+                state.set(CustomerState::Payment);
+            } else {
+                state.set(CustomerState::Reject);
+
             }
-
-
-        } else {
-            spawn_text_box(&mut cmd, &c.thinking);
-            *timer = Timer::new(Duration::from_secs_f32(5.0 * rand::random::<f32>()), TimerMode::Once);
-            return;
         }
-
-
-
-
+    } else {
+        *timer = Timer::new(
+            Duration::from_secs_f32(1.0 * rand::random::<f32>() + 1.0),
+            TimerMode::Once,
+        );
+        return;
     }
 }
 

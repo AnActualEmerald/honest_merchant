@@ -4,12 +4,12 @@
         "Wonderful weather we're having",
     ],
     thinking: "Hmm...",
-    thank: "Ah, perfect!",
+    accept: "Ah, perfect!",
+    reject: "Uh, no. I don't think that's right",
     accuse: "Hey, what are you trying to pull!",
-    request: (
-        kind: SpiderEyes,
-        amount: 10.0,
-    ),
+    request: ({
+        SpiderEyes: 10.0,
+    }),
     attention_type: Distracted,
     max_gold: 100
 )

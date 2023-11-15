@@ -5,7 +5,7 @@ use bevy::{
 use serde::Deserialize;
 use thiserror::Error;
 
-use crate::game::{AttentionType, ItemType};
+use crate::game::{AttentionType, ItemRequest};
 
 pub struct AssetPlugin;
 
@@ -24,6 +24,7 @@ pub enum LoaderError {
     RonError(#[from] ron::error::SpannedError),
 }
 
+
 // character files
 
 #[derive(Asset, TypePath, Debug, Deserialize)]
@@ -31,9 +32,10 @@ pub struct CharacterTraits {
     pub name: String,
     pub greeting: Vec<String>,
     pub thinking: String,
-    pub thank: String,
+    pub accept: String,
+    pub reject: String,
     pub accuse: String,
-    pub request: ItemType,
+    pub request: ItemRequest,
     pub attention_type: AttentionType,
     pub max_gold: u32
 }

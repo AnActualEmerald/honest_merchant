@@ -1,28 +1,65 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::HashMap};
 use serde::Deserialize;
 
 use self::{
     customer::{CustomerPlugin, CustomerState},
+    goods::{GoodsPlugin, ItemType},
     scales::ScalesPlugin,
 };
 
 mod customer;
+mod goods;
 mod scales;
 
 #[derive(Event, Default, Debug, Clone, Copy)]
 pub struct Advance;
 
-#[derive(Resource, Debug, Clone, Copy, Deref, Default)]
-pub struct TargetWeight(f32);
+#[derive(Resource, Debug, Clone, Deref, Default)]
+pub struct TargetWeight(HashMap<ItemType, f32>);
 
-impl From<ItemType> for TargetWeight {
-    fn from(value: ItemType) -> Self {
-        match value {
-            ItemType::Berries(v) => Self(v),
-            ItemType::GreenMush(v) => Self(v),
-            ItemType::SpiderEyes(v) => Self(v),
-            ItemType::VibrantSyrup(v) => Self(v),
+impl From<ItemRequest> for TargetWeight {
+    fn from(value: ItemRequest) -> Self {
+        Self(value.0)
+    }
+}
+
+impl From<&ItemRequest> for TargetWeight {
+    fn from(value: &ItemRequest) -> Self {
+       Self(value.0.clone())
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ItemRequest(pub(crate) HashMap<ItemType, f32>);
+
+impl std::ops::Deref for ItemRequest {
+    type Target = HashMap<ItemType, f32>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl std::fmt::Display for ItemRequest {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (t, amount) in self.iter() {
+            match t {
+                ItemType::Berries => {
+                    write!(f, "{amount}g of berries")?;
+                }
+                ItemType::GreenMush => {
+                    write!(f, "{amount}g of green mush")?;
+                }
+                ItemType::SpiderEyes => {
+                    write!(f, "{amount}g of spider eyes")?;
+                }
+                ItemType::VibrantSyrup => {
+                    write!(f, "{amount}g of vibrant syrup")?;
+                }
+            }
         }
+
+        Ok(())
     }
 }
 
@@ -32,34 +69,6 @@ pub enum AttentionType {
     Normal,
     Attentive,
     Alert,
-}
-
-#[derive(Deserialize, Debug, Clone, Copy, PartialEq, PartialOrd)]
-#[serde(tag = "kind", content = "amount")]
-pub enum ItemType {
-    Berries(f32),
-    GreenMush(f32),
-    SpiderEyes(f32),
-    VibrantSyrup(f32),
-}
-
-impl std::fmt::Display for ItemType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Berries(amount) => {
-                write!(f, "{amount}g of berries")
-            }
-            Self::GreenMush(amount) => {
-                write!(f, "{amount}g of green mush")
-            }
-            Self::SpiderEyes(amount) => {
-                write!(f, "{amount}g of spider eyes")
-            }
-            Self::VibrantSyrup(amount) => {
-                write!(f, "{amount}g of vibrant syrup")
-            }
-        }
-    }
 }
 
 #[allow(dead_code)]
@@ -79,13 +88,20 @@ pub struct DayTimer(Timer);
 #[derive(Resource, Debug, Clone, Deref, DerefMut)]
 pub struct CustomerTimer(Timer);
 
+#[derive(Event, Debug, Clone, Copy, Default)]
+pub struct UpdateScore {
+    pub rep: f32,
+    pub gold: f32,
+}
+
 pub struct GamePlugin;
 
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins((CustomerPlugin, ScalesPlugin))
+        app.add_plugins((CustomerPlugin, ScalesPlugin, GoodsPlugin))
             .add_state::<GameState>()
             .add_event::<Advance>()
+            .add_event::<UpdateScore>()
             .insert_resource(CustomerTimer(Timer::from_seconds(
                 5.0,
                 TimerMode::Repeating,

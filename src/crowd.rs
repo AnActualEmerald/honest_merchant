@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use bevy::prelude::*;
 
 pub const CROWD_SIZE: u8 = 10;

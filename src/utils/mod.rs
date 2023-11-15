@@ -12,7 +12,7 @@ pub struct UtilPlugin;
 
 impl Plugin for UtilPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, step_text);
+        app.add_systems(Update, step_text).add_systems(PostStartup, initial_offset);
     }
 }
 
@@ -47,9 +47,24 @@ fn step_text(
     }
 }
 
+fn initial_offset(mut q: Query<(&mut Transform, &Offset)>)  {
+    for (mut tr, off) in q.iter_mut() {
+        tr.translation += **off;
+    }
+}
+
 pub fn despawn_all<T: Component>(mut cmd: Commands, q: Query<Entity, With<T>>) {
     for ent in q.iter() {
         cmd.entity(ent).despawn_recursive();
+    }
+}
+
+#[derive(Component, Deref, DerefMut, Clone, Debug, Default)]
+pub struct Offset(Vec3);
+
+impl Offset {
+    pub fn new(x: f32, y: f32, z: f32) -> Self {
+        Self(Vec3 { x, y, z })
     }
 }
 
