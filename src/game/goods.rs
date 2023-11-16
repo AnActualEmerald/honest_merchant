@@ -79,7 +79,7 @@ pub const DRAWER_OPEN_POS: Transform = Transform::from_translation(Vec3 {
     x: DRAWER_CLOSED_POS.translation.x,
     y: DRAWER_CLOSED_POS.translation.y,
     z: DRAWER_CLOSED_POS.translation.z + 0.125,
-});
+}); // adding vectors isn't const
 
 pub const ITEM_COLORS: [Color; ItemType::COUNT] = [
     Color::CRIMSON,
@@ -87,6 +87,9 @@ pub const ITEM_COLORS: [Color; ItemType::COUNT] = [
     Color::SEA_GREEN,
     Color::rgb(1.0, 0.0, 1.0),
 ];
+
+/// How much each item costs per 1 g
+pub const ITEM_COST: [f32; ItemType::COUNT] = [1.0, 2.0, 5.0, 8.0];
 
 pub struct GoodsPlugin;
 

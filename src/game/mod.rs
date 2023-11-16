@@ -11,6 +11,9 @@ mod customer;
 mod goods;
 mod scales;
 
+pub use goods::ITEM_COST;
+pub use scales::ScaleContents;
+
 #[derive(Event, Default, Debug, Clone, Copy)]
 pub struct Advance;
 
@@ -25,7 +28,7 @@ impl From<ItemRequest> for TargetWeight {
 
 impl From<&ItemRequest> for TargetWeight {
     fn from(value: &ItemRequest) -> Self {
-       Self(value.0.clone())
+        Self(value.0.clone())
     }
 }
 

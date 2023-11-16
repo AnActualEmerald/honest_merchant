@@ -5,11 +5,10 @@ use bevy::prelude::*;
 use bevy_tweening::{
     component_animator_system, AnimationSystem, Animator, EaseFunction, Lens, Tween,
 };
-use leafwing_input_manager::prelude::InputMap;
-use leafwing_input_manager::user_input::InputKind;
-use leafwing_input_manager::InputManagerBundle;
 
-use crate::input::{Action, CursorPos};
+use crate::game::{ScaleContents, TargetWeight, ITEM_COST};
+
+use crate::input::CursorPos;
 use crate::WINDOW_SIZE;
 
 #[derive(Component, Debug)]
@@ -29,6 +28,16 @@ impl Lens<LookTarget> for LookTargetLens {
     }
 }
 
+/// Marker to denote UI text show the current cost of the items on the scale
+#[derive(Component, Debug)]
+pub struct CostText;
+
+#[derive(Component, Debug)]
+pub struct CustText;
+
+#[derive(Component, Debug)]
+pub struct ProfitText;
+
 pub const DEFAULT_LOOK: Vec3 = Vec3::new(0.0, 1.75, 0.0);
 pub const DEADZONE: f32 = (WINDOW_SIZE.y / 2.0) * 0.66;
 pub const LOOK_AMOUNT: f32 = 0.1;
@@ -42,11 +51,19 @@ impl Plugin for PlayerPlugin {
             component_animator_system::<LookTarget>.in_set(AnimationSystem::AnimationUpdate),
         )
         .add_systems(Startup, spawn_player)
-        .add_systems(Update, (tilt_camera_toward_mouse, look));
+        .add_systems(Update, (tilt_camera_toward_mouse, look))
+        .add_systems(
+            Update,
+            (
+                update_cost_text.run_if(resource_changed::<ScaleContents>()),
+                update_customer_text.run_if(resource_changed::<TargetWeight>()),
+            ),
+        );
     }
 }
 
 fn spawn_player(mut cmd: Commands) {
+    // player camera
     cmd.spawn((
         Camera3dBundle {
             camera: Camera {
@@ -70,16 +87,76 @@ fn spawn_player(mut cmd: Commands) {
         Player,
         LookTarget(DEFAULT_LOOK),
     ));
-    // cmd.spawn(Camera2dBundle {
-    //     camera_2d: Camera2d {
-    //         clear_color: ClearColorConfig::None,
-    //     },
-    //     camera: Camera {
-    //         order: 1,
-    //         ..default()
-    //     },
-    //     ..default()
-    // });
+
+    // UI stuff
+    cmd.spawn(NodeBundle {
+        style: Style {
+            position_type: PositionType::Absolute,
+            right: Val::Px(10.0),
+            display: Display::Grid,
+            grid_template_columns: vec![GridTrack::auto(), GridTrack::fr(1.0)],
+            ..default()
+        },
+        background_color: Color::BLUE.into(),
+        ..default()
+    })
+    .with_children(|parent| {
+        // parent
+        //     .spawn(NodeBundle { ..default() })
+        //     .with_children(|parent| {
+        parent.spawn(TextBundle::from_section(
+            "Customer will pay: ",
+            TextStyle::default(),
+        ));
+
+        parent.spawn((
+            TextBundle {
+                style: Style {
+                    justify_self: JustifySelf::End,
+                    ..default()
+                },
+                text: Text::from_section("", TextStyle::default()),
+                ..default()
+            },
+            CustText,
+        ));
+
+        parent.spawn(TextBundle::from_section(
+            "Total cost: ",
+            TextStyle::default(),
+        ));
+
+        parent.spawn((
+            TextBundle {
+                style: Style {
+                    justify_self: JustifySelf::End,
+                    ..default()
+                },
+                background_color: Color::CYAN.into(),
+                text: Text::from_section("", TextStyle::default()),
+                ..default()
+            },
+            CostText,
+        ));
+
+        parent.spawn(TextBundle::from_section(
+            "Total profit: ",
+            TextStyle::default(),
+        ));
+
+        parent.spawn((
+            TextBundle {
+                style: Style {
+                    justify_self: JustifySelf::End,
+                    ..default()
+                },
+                background_color: Color::CYAN.into(),
+                text: Text::from_section("", TextStyle::default()),
+                ..default()
+            },
+            ProfitText,
+        ));
+    });
 }
 
 fn look(mut q: Query<(&mut Transform, &LookTarget), (With<Player>, Changed<LookTarget>)>) {
@@ -124,5 +201,27 @@ fn tilt_camera_toward_mouse(
         );
 
         cmd.entity(ent).insert(Animator::new(tween));
+    }
+}
+
+fn update_cost_text(mut q: Query<&mut Text, With<CostText>>, contents: Res<ScaleContents>) {
+    for mut text in q.iter_mut() {
+        let num_section = &mut text.sections[0];
+        let cost: f32 = contents
+            .iter()
+            .map(|(t, amnt)| amnt * ITEM_COST[*t as usize])
+            .sum();
+        num_section.value = format!("{cost:.0} gold");
+    }
+}
+
+fn update_customer_text(mut q: Query<&mut Text, With<CustText>>, contents: Res<TargetWeight>) {
+    for mut text in q.iter_mut() {
+        let num_section = &mut text.sections[0];
+        let cost: f32 = contents
+            .iter()
+            .map(|(t, amnt)| amnt * ITEM_COST[*t as usize])
+            .sum();
+        num_section.value = format!("{cost:.0} gold");
     }
 }

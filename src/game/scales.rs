@@ -4,7 +4,7 @@ use bevy::{prelude::*, utils::HashMap};
 use bevy_mod_picking::prelude::*;
 use bevy_tweening::{lens::TransformRotationLens, *};
 
-use super::goods::{ItemType, ITEM_COLORS, RemoveItem};
+use super::goods::{ItemType, RemoveItem, ITEM_COLORS};
 
 pub const MAX_ROTATION_DEGREES: f32 = 30.0;
 pub const SCALE_WIDTH: f32 = 3.0;
@@ -70,6 +70,9 @@ impl ScaleWeights {
 #[derive(Component, Debug)]
 pub struct Scales;
 
+pub const WEIGHT_HEIGHT: f32 = 0.125;
+pub const WEIGHT_RAD: f32 = 0.05;
+
 pub struct ScalesPlugin;
 
 impl Plugin for ScalesPlugin {
@@ -81,7 +84,10 @@ impl Plugin for ScalesPlugin {
             .init_resource::<ScaleContents>()
             .add_systems(Startup, setup_scales)
             // .add_systems(PostUpdate, place_weights.after(TransformSystem::TransformPropagate))
-            .add_systems(Update, (add_weights, remove_weights, update_scale_rot, scale_piles))
+            .add_systems(
+                Update,
+                (add_weights, remove_weights, update_scale_rot, scale_piles),
+            )
             .add_systems(
                 Update,
                 set_weight.run_if(resource_exists_and_changed::<ScaleContents>()),
@@ -89,28 +95,34 @@ impl Plugin for ScalesPlugin {
 
         let mut table_points = vec![];
         for i in 0..WEIGHTS.len() {
+            let scale = Vec3::splat((i as f32).powf(0.25));
             let points = Transform::from_xyz(
-                -2.0 + (0.125 * (i + 1) as f32),
-                1.0 + ((0.25 / (WEIGHTS.len() - i) as f32) / 2.0),
+                -2.0 + (WEIGHT_RAD * 2.0 + 0.1) * (i as f32),
+                1.0 + (WEIGHT_HEIGHT * scale.y) / 2.0,
                 -0.5,
             )
-            .with_scale(Vec3::splat(0.25 / ((WEIGHTS.len() - i) as f32)));
+            .with_scale(scale);
             table_points.push(points);
         }
 
-        app.insert_resource(TablePoints(table_points));
+        app.insert_resource(TablePoints(table_points.clone()));
 
         let mut scale_points = vec![];
+        let mut row = -0.5;
         for i in 0..WEIGHTS.len() {
-            let x = (0.125 * (i + 1) as f32) % 3.0;
-            let z = 0.25 - ((i as f32 % 2.0) / 2.0);
+            if i as f32 % 3.0 == 0.0 {
+                row += 0.5;
+            }
+            let x = 0.3 * (i as f32 % 3.0);
+            let z = 0.5 - row;
+            let scale = table_points[i].scale * 2.0;
             info!("Add weight at {x:.2},{z:.2}");
             let points = Transform::from_xyz(
-                -SCALE_WIDTH / 2.0 + x,
-                0.5 + ((0.25 / (WEIGHTS.len() - i) as f32) / 2.0),
+                (-SCALE_WIDTH - (WEIGHT_RAD)) / 2.0 + (x),
+                0.5 + ((WEIGHT_HEIGHT * scale.y) / 2.0),
                 z,
             )
-            .with_scale(Vec3::splat(0.75 / ((WEIGHTS.len() - i) as f32)));
+            .with_scale(scale);
             scale_points.push(points);
         }
         app.insert_resource(ScalePoints(scale_points));
@@ -148,8 +160,8 @@ fn setup_scales(
     let mesh = meshes.add(Mesh::from(shape::Box::new(3.0, 1.0, 1.0)));
     let mat = materials.add(Color::BEIGE.into());
     let weight_mesh = meshes.add(Mesh::from(shape::Cylinder {
-        radius: 0.5,
-        height: 1.0,
+        radius: 0.05,
+        height: 0.125,
         ..default()
     }));
     let weight_mat = materials.add(Color::GOLD.into());
@@ -204,15 +216,18 @@ fn setup_scales(
                         .unwrap(),
                     ),
                     material: materials.add((*col).into()),
-                    transform: Transform::from_xyz( SCALE_WIDTH / 2.0 - 0.25 - (i as f32 % 2.0) / 2.0 , 0.5, -0.25 + (row / 2.0)).with_scale(Vec3::ZERO),
+                    transform: Transform::from_xyz(
+                        SCALE_WIDTH / 2.0 - 0.25 - (i as f32 % 2.0) / 2.0,
+                        0.5,
+                        -0.25 + (row / 2.0),
+                    )
+                    .with_scale(Vec3::ZERO),
                     ..default()
                 },
                 t,
                 OnScale,
-                On::<Pointer<Down>>::send_event::<RemoveItem>()
+                On::<Pointer<Down>>::send_event::<RemoveItem>(),
             ));
-
-            
         }
     });
 
@@ -309,12 +324,14 @@ fn set_weight(mut scale_weights: ResMut<ScaleWeights>, contents: Res<ScaleConten
     scale_weights.right = weight;
 }
 
-fn scale_piles(mut q: Query<(&mut Transform, &ItemType), With<OnScale>>, contents: Res<ScaleContents>) {
+fn scale_piles(
+    mut q: Query<(&mut Transform, &ItemType), With<OnScale>>,
+    contents: Res<ScaleContents>,
+) {
     for (mut tr, ty) in q.iter_mut() {
         let scale = *contents.get(ty).unwrap_or(&0.0);
         tr.scale = Vec3::splat(scale.powf(0.25));
     }
-
 }
 
 fn update_scale_rot(
