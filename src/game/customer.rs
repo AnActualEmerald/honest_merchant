@@ -9,7 +9,8 @@ use rand::prelude::*;
 use crate::{
     assets::CharacterTraits,
     utils::{
-        despawn_all, text_box::{SpawnTextBox, TextBox},
+        despawn_all,
+        text_box::{SpawnTextBox, TextBox},
         CalcCost, Ratios,
     },
 };
@@ -118,7 +119,6 @@ fn spawn_customer(
             transform: Transform::from_translation(CUSTOMER_STAND_POINT + Vec3::new(0.0, 1.0, 0.0)),
             ..default()
         },
-
         Customer(ass.load("customers/dumb.chr.ron")),
     ));
 
@@ -156,11 +156,9 @@ fn show_text(
                 spawn_text.send(ty.thinking.clone().into());
             }
             CustomerState::Payment => {
-                spawn_text.send(format!(
-                    "{} Here's {} gold",
-                    ty.accept,
-                    ty.request.customer_cost()
-                ).into());
+                spawn_text.send(
+                    format!("{} Here's {} gold", ty.accept, ty.request.customer_cost()).into(),
+                );
             }
             CustomerState::Reject => {
                 spawn_text.send(ty.reject.clone().into());
@@ -226,7 +224,6 @@ fn handle_review(
             Duration::from_secs_f32(thread_rng().gen_range(1.0..=3.0)),
             TimerMode::Once,
         );
-        return;
     }
 }
 
@@ -236,9 +233,8 @@ fn handle_submit(
     state: Res<State<CustomerState>>,
 ) {
     for _event in er.read() {
-        match **state {
-            CustomerState::Measuring => ew.send_default(),
-            _ => {}
+        if CustomerState::Measuring == **state {
+            ew.send_default();
         }
     }
 }

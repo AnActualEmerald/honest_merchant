@@ -120,13 +120,13 @@ impl Plugin for ScalesPlugin {
 
         let mut scale_points = vec![];
         let mut row = -0.5;
-        for i in 0..WEIGHTS.len() {
+        for (i, tr) in table_points.iter().enumerate().take(WEIGHTS.len()) {
             if i as f32 % 3.0 == 0.0 {
                 row += 0.5;
             }
             let x = 0.3 * (i as f32 % 3.0);
             let z = 0.5 - row;
-            let scale = table_points[i].scale * 2.0;
+            let scale = tr.scale * 2.0;
             info!("Add weight at {x:.2},{z:.2}");
             let points = Transform::from_xyz(
                 (-SCALE_WIDTH - (WEIGHT_RAD)) / 2.0 + (x),
@@ -354,7 +354,10 @@ fn setup_scales(
 }
 
 fn add_weights(
-    mut free_weights: Query<(&mut Visibility, &Index, &Mass, &Disables, Option<&Sus>), Without<OnScale>>,
+    mut free_weights: Query<
+        (&mut Visibility, &Index, &Mass, &Disables, Option<&Sus>),
+        Without<OnScale>,
+    >,
     mut used_weights: Query<&mut Visibility, With<OnScale>>,
     mut scale_weights: ResMut<ScaleWeights>,
     mut events: EventReader<AddWeight>,

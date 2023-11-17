@@ -26,3 +26,6 @@ opt-level = 1
 [profile.release]
 opt-level = "z"
 lto = "thin"
+
+[lints.clippy]
+type_complexity = "allow"

@@ -8,14 +8,13 @@ use crate::{
     input::Action,
 };
 
-use self::text_box::{TimedText, spawn_text_box, SpawnTextBox};
+use self::text_box::{spawn_text_box, SpawnTextBox, TimedText};
 
 pub struct UtilPlugin;
 
 impl Plugin for UtilPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_event::<SpawnTextBox>()
+        app.add_event::<SpawnTextBox>()
             .add_systems(Update, (spawn_text_box, step_text.after(spawn_text_box)))
             .add_systems(PostStartup, initial_offset);
     }
@@ -31,20 +30,15 @@ fn step_text(
         info!("Text step");
         if timed.index <= timed.text.len() {
             if timed.timer.tick(time.delta()).just_finished() {
-
                 text.sections[0].value = timed.text[..timed.index].to_string();
 
                 timed.index += 1;
-            } else {
-                if actions.pressed(Action::Advance) {
-                    // twice as fast text I think?
-                    timed.timer.tick(time.delta());
-                }
+            } else if actions.pressed(Action::Advance) {
+                // twice as fast text I think?
+                timed.timer.tick(time.delta());
             }
-        } else {
-            if actions.just_pressed(Action::Advance) {
-                ew.send_default();
-            }
+        } else if actions.just_pressed(Action::Advance) {
+            ew.send_default();
         }
     }
 }
@@ -81,12 +75,12 @@ impl RoundTo for f32 {
 }
 
 pub trait Approx {
-    fn is_about(self, target: Self, error: Self) -> bool;
+    fn is_about(&self, target: Self, error: Self) -> bool;
 }
 
 impl Approx for f32 {
-    fn is_about(self, target: Self, error: Self) -> bool {
-        self <= target + error && self >= target - error
+    fn is_about(&self, target: Self, error: Self) -> bool {
+        *self <= target + error && *self >= target - error
     }
 }
 
@@ -115,9 +109,11 @@ impl Ratios for HashMap<ItemType, f32> {
 
     fn ratio(&self) -> Self::Output {
         let total: f32 = self.values().sum();
-        self.iter().map(|(k, v)| {
-            let r = v / total;
-            (*k, r)
-        }).collect()
+        self.iter()
+            .map(|(k, v)| {
+                let r = v / total;
+                (*k, r)
+            })
+            .collect()
     }
 }

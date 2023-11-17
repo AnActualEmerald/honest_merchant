@@ -1,4 +1,4 @@
-use bevy::{prelude::*, text::FontLoader};
+use bevy::{prelude::*};
 use bevy_mod_billboard::plugin::BillboardPlugin;
 use bevy_tweening::TweeningPlugin;
 use bevy_mod_picking::prelude::*;

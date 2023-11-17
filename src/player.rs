@@ -6,7 +6,7 @@ use bevy_tweening::{
     component_animator_system, AnimationSystem, Animator, EaseFunction, Lens, Tween,
 };
 
-use crate::game::{ScaleContents, TargetWeight, ITEM_COST};
+use crate::game::{ScaleContents, TargetWeight};
 
 use crate::input::CursorPos;
 use crate::utils::CalcCost;
