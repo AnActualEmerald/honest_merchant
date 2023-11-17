@@ -748,6 +748,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_mod_billboard"
+version = "0.4.1"
+source = "git+https://github.com/robtfm/bevy_mod_billboard/?branch=bevy12#99154fa88a3b5380ef778626d367158218b9b5d9"
+dependencies = [
+ "bevy",
+ "bitflags 2.4.1",
+]
+
+[[package]]
 name = "bevy_mod_picking"
 version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2120,6 +2129,7 @@ name = "honest_merchant"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "bevy_mod_billboard",
  "bevy_mod_picking",
  "bevy_tweening",
  "leafwing-input-manager",

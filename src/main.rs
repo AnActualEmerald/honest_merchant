@@ -1,6 +1,8 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, text::FontLoader};
+use bevy_mod_billboard::plugin::BillboardPlugin;
 use bevy_tweening::TweeningPlugin;
 use bevy_mod_picking::prelude::*;
+use crowd::CrowdPlugin;
 use game::GamePlugin;
 use input::InputPlugin;
 use player::PlayerPlugin;
@@ -32,12 +34,13 @@ fn main() {
             }),
             TweeningPlugin,
             DefaultPickingPlugins,
+            BillboardPlugin,
         ))
-        .add_plugins((UtilPlugin, AssetPlugin, InputPlugin, WorldPlugin, GamePlugin, PlayerPlugin))
+        .add_plugins((UtilPlugin, AssetPlugin, CrowdPlugin, InputPlugin, WorldPlugin, GamePlugin, PlayerPlugin))
         .add_systems(Startup, setup)
         .run();
 }
 
-fn setup(mut cmd: Commands) {
+fn setup() {//mut cmd: Commands) {
     // set up stuff
 }

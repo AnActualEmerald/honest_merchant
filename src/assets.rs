@@ -37,7 +37,6 @@ pub struct CharacterTraits {
     pub accuse: String,
     pub request: ItemRequest,
     pub attention_type: AttentionType,
-    pub max_gold: u32
 }
 
 #[derive(Default)]

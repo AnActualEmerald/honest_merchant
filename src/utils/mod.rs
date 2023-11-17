@@ -1,42 +1,44 @@
 pub mod text_box;
 use leafwing_input_manager::prelude::ActionState;
-pub use text_box::spawn_text_box;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::HashMap};
 
-use crate::{game::Advance, input::Action};
+use crate::{
+    game::{Advance, ItemType, ITEM_COST},
+    input::Action,
+};
 
-use self::text_box::{TextBox, TextChild};
+use self::text_box::{TimedText, spawn_text_box, SpawnTextBox};
 
 pub struct UtilPlugin;
 
 impl Plugin for UtilPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, step_text).add_systems(PostStartup, initial_offset);
+        app
+            .add_event::<SpawnTextBox>()
+            .add_systems(Update, (spawn_text_box, step_text.after(spawn_text_box)))
+            .add_systems(PostStartup, initial_offset);
     }
 }
 
-// this is maybe too much for a single system to do?
 fn step_text(
-    mut box_q: Query<(&mut TextBox, &TextChild)>,
-    mut text_q: Query<&mut Text>,
+    mut text_q: Query<(&mut Text, &mut TimedText)>,
     actions: Res<ActionState<Action>>,
     mut ew: EventWriter<Advance>,
     time: Res<Time>,
 ) {
-    for (mut b, child) in box_q.iter_mut() {
-        if b.index <= b.text.len() {
-            if b.timer.tick(time.delta()).just_finished() {
-                let Ok(mut text) = text_q.get_mut(**child) else {
-                    continue;
-                };
-                text.sections[0].value = b.text[..b.index].to_string();
+    for (mut text, mut timed) in text_q.iter_mut() {
+        info!("Text step");
+        if timed.index <= timed.text.len() {
+            if timed.timer.tick(time.delta()).just_finished() {
 
-                b.index += 1;
+                text.sections[0].value = timed.text[..timed.index].to_string();
+
+                timed.index += 1;
             } else {
                 if actions.pressed(Action::Advance) {
                     // twice as fast text I think?
-                    b.timer.tick(time.delta());
+                    timed.timer.tick(time.delta());
                 }
             }
         } else {
@@ -47,7 +49,7 @@ fn step_text(
     }
 }
 
-fn initial_offset(mut q: Query<(&mut Transform, &Offset)>)  {
+fn initial_offset(mut q: Query<(&mut Transform, &Offset)>) {
     for (mut tr, off) in q.iter_mut() {
         tr.translation += **off;
     }
@@ -85,5 +87,37 @@ pub trait Approx {
 impl Approx for f32 {
     fn is_about(self, target: Self, error: Self) -> bool {
         self <= target + error && self >= target - error
+    }
+}
+
+pub trait CalcCost {
+    fn cost(&self) -> f32;
+    fn customer_cost(&self) -> f32 {
+        self.cost() * 2.0
+    }
+}
+
+impl CalcCost for HashMap<ItemType, f32> {
+    fn cost(&self) -> f32 {
+        self.iter()
+            .map(|(t, amnt)| amnt * ITEM_COST[*t as usize])
+            .sum::<f32>()
+    }
+}
+
+pub trait Ratios {
+    type Output;
+    fn ratio(&self) -> Self::Output;
+}
+
+impl Ratios for HashMap<ItemType, f32> {
+    type Output = HashMap<ItemType, f32>;
+
+    fn ratio(&self) -> Self::Output {
+        let total: f32 = self.values().sum();
+        self.iter().map(|(k, v)| {
+            let r = v / total;
+            (*k, r)
+        }).collect()
     }
 }

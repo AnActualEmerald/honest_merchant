@@ -9,6 +9,7 @@ use bevy_tweening::{
 use crate::game::{ScaleContents, TargetWeight, ITEM_COST};
 
 use crate::input::CursorPos;
+use crate::utils::CalcCost;
 use crate::WINDOW_SIZE;
 
 #[derive(Component, Debug)]
@@ -57,6 +58,9 @@ impl Plugin for PlayerPlugin {
             (
                 update_cost_text.run_if(resource_changed::<ScaleContents>()),
                 update_customer_text.run_if(resource_changed::<TargetWeight>()),
+                update_profit_text.run_if(
+                    resource_changed::<ScaleContents>().or_else(resource_changed::<TargetWeight>()),
+                ),
             ),
         );
     }
@@ -93,17 +97,18 @@ fn spawn_player(mut cmd: Commands) {
         style: Style {
             position_type: PositionType::Absolute,
             right: Val::Px(10.0),
+            bottom: Val::Px(10.0),
             display: Display::Grid,
             grid_template_columns: vec![GridTrack::auto(), GridTrack::fr(1.0)],
+            padding: UiRect::all(Val::Px(4.0)),
+            border: UiRect::all(Val::Px(2.0)),
             ..default()
         },
-        background_color: Color::BLUE.into(),
+        border_color: Color::BLACK.into(),
+        background_color: Color::rgb_u8(255, 87, 51).into(),
         ..default()
     })
     .with_children(|parent| {
-        // parent
-        //     .spawn(NodeBundle { ..default() })
-        //     .with_children(|parent| {
         parent.spawn(TextBundle::from_section(
             "Customer will pay: ",
             TextStyle::default(),
@@ -132,7 +137,6 @@ fn spawn_player(mut cmd: Commands) {
                     justify_self: JustifySelf::End,
                     ..default()
                 },
-                background_color: Color::CYAN.into(),
                 text: Text::from_section("", TextStyle::default()),
                 ..default()
             },
@@ -150,7 +154,6 @@ fn spawn_player(mut cmd: Commands) {
                     justify_self: JustifySelf::End,
                     ..default()
                 },
-                background_color: Color::CYAN.into(),
                 text: Text::from_section("", TextStyle::default()),
                 ..default()
             },
@@ -207,21 +210,27 @@ fn tilt_camera_toward_mouse(
 fn update_cost_text(mut q: Query<&mut Text, With<CostText>>, contents: Res<ScaleContents>) {
     for mut text in q.iter_mut() {
         let num_section = &mut text.sections[0];
-        let cost: f32 = contents
-            .iter()
-            .map(|(t, amnt)| amnt * ITEM_COST[*t as usize])
-            .sum();
+        let cost: f32 = contents.cost();
         num_section.value = format!("{cost:.0} gold");
     }
 }
 
-fn update_customer_text(mut q: Query<&mut Text, With<CustText>>, contents: Res<TargetWeight>) {
+fn update_customer_text(mut q: Query<&mut Text, With<CustText>>, target: Res<TargetWeight>) {
     for mut text in q.iter_mut() {
         let num_section = &mut text.sections[0];
-        let cost: f32 = contents
-            .iter()
-            .map(|(t, amnt)| amnt * ITEM_COST[*t as usize])
-            .sum();
+        let cost: f32 = target.customer_cost();
         num_section.value = format!("{cost:.0} gold");
+    }
+}
+
+fn update_profit_text(
+    mut q: Query<&mut Text, With<ProfitText>>,
+    contents: Res<ScaleContents>,
+    target: Res<TargetWeight>,
+) {
+    for mut text in q.iter_mut() {
+        let num_section = &mut text.sections[0];
+        let profit = target.customer_cost() - contents.cost();
+        num_section.value = format!("{profit:.0} gold");
     }
 }

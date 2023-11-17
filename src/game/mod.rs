@@ -3,7 +3,7 @@ use serde::Deserialize;
 
 use self::{
     customer::{CustomerPlugin, CustomerState},
-    goods::{GoodsPlugin, ItemType},
+    goods::GoodsPlugin,
     scales::ScalesPlugin,
 };
 
@@ -13,6 +13,13 @@ mod scales;
 
 pub use goods::ITEM_COST;
 pub use scales::ScaleContents;
+pub use goods::ItemType;
+
+#[derive(Resource, Default, Deref, DerefMut, Debug, Clone, Copy, PartialEq, PartialOrd)]
+pub struct TotalGold(f32);
+
+#[derive(Resource, Default, Deref, DerefMut, Debug, Clone, Copy, PartialEq, PartialOrd)]
+pub struct DailyGold(f32);
 
 #[derive(Event, Default, Debug, Clone, Copy)]
 pub struct Advance;
@@ -45,7 +52,12 @@ impl std::ops::Deref for ItemRequest {
 
 impl std::fmt::Display for ItemRequest {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for (t, amount) in self.iter() {
+        let mut iter = self.iter().peekable();
+
+        while let Some((t, amount)) = iter.next() {
+            if self.len() > 1 && iter.peek().is_none() {
+                write!(f, "and ")?;
+            }
             match t {
                 ItemType::Berries => {
                     write!(f, "{amount}g of berries")?;
@@ -59,6 +71,10 @@ impl std::fmt::Display for ItemRequest {
                 ItemType::VibrantSyrup => {
                     write!(f, "{amount}g of vibrant syrup")?;
                 }
+            }
+
+            if iter.peek().is_some() {
+                write!(f, ", ")?;
             }
         }
 
@@ -102,6 +118,8 @@ pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins((CustomerPlugin, ScalesPlugin, GoodsPlugin))
+            .init_resource::<TotalGold>()
+            .init_resource::<DailyGold>()
             .add_state::<GameState>()
             .add_event::<Advance>()
             .add_event::<UpdateScore>()

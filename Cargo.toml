@@ -15,6 +15,7 @@ serde = { version = "1.0.192", features = ["derive"] }
 thiserror = "1.0.50"
 rand = "0.8.5"
 strum = { version = "0.25.0", features = ["derive"] }
+bevy_mod_billboard = { git = "https://github.com/robtfm/bevy_mod_billboard/", branch = "bevy12", version = "0.4.1" }
 
 [profile.dev.package."*"]
 opt-level = 3

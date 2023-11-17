@@ -11,8 +11,8 @@ impl Plugin for WorldPlugin {
 fn spawn_world(
     mut cmd: Commands,
     ass: Res<AssetServer>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    // mut meshes: ResMut<Assets<Mesh>>,
+    // mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     cmd.spawn(SceneBundle {
         scene: ass.load("stand.gltf#Scene0"),

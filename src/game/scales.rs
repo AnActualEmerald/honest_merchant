@@ -12,6 +12,7 @@ pub const WEIGHTS: [f32; 6] = [10.0, 5.0, 4.0, 3.0, 2.0, 1.0];
 
 #[derive(Resource, Deref, Debug)]
 pub struct TablePoints(Vec<Transform>);
+
 #[derive(Resource, Deref, Debug)]
 pub struct ScalePoints(Vec<Transform>);
 
@@ -45,14 +46,23 @@ impl From<ListenerInput<Pointer<Down>>> for Submit {
 #[derive(Component, Debug, Clone, Copy, Deref)]
 pub struct Mass(f32);
 
-#[derive(Component, Debug, Clone, Copy, Deref, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Index(usize);
+#[derive(Component, Debug, Clone, Copy, Deref)]
+pub struct Index(Entity);
+
+#[derive(Component, Debug, Clone, Copy, Deref)]
+pub struct Disables(Entity);
 
 #[derive(Resource, Default, Clone, Deref, DerefMut, Debug)]
 pub struct ScaleContents(HashMap<ItemType, f32>);
 
 #[derive(Component, Debug)]
 pub struct OnScale;
+
+#[derive(Component, Debug)]
+pub struct Sus;
+
+#[derive(Event, Debug, Clone)]
+pub struct SusEvent(Index);
 
 #[derive(Resource, Default, Debug, Clone, Copy)]
 pub struct ScaleWeights {
@@ -80,6 +90,7 @@ impl Plugin for ScalesPlugin {
         app.add_event::<AddWeight>()
             .add_event::<RemoveWeight>()
             .add_event::<Submit>()
+            .add_event::<SusEvent>()
             .init_resource::<ScaleWeights>()
             .init_resource::<ScaleContents>()
             .add_systems(Startup, setup_scales)
@@ -165,6 +176,10 @@ fn setup_scales(
         ..default()
     }));
     let weight_mat = materials.add(Color::GOLD.into());
+    let sus_mat = materials.add(Color::ORANGE_RED.into());
+
+    let mut on_scale = vec![];
+    let mut on_scale_sus = vec![];
 
     // spawn scales
     cmd.spawn((
@@ -181,18 +196,43 @@ fn setup_scales(
         for _ in WEIGHTS {
             shift -= 1;
 
-            parent.spawn((
-                PbrBundle {
-                    mesh: weight_mesh.clone(),
-                    material: weight_mat.clone(),
-                    transform: scale_points[shift],
-                    visibility: Visibility::Hidden,
-                    ..default()
-                },
-                Index(shift as usize),
-                OnScale,
-                On::<Pointer<Down>>::send_event::<RemoveWeight>(),
-            ));
+            on_scale.push(
+                parent
+                    .spawn((
+                        PbrBundle {
+                            mesh: weight_mesh.clone(),
+                            material: weight_mat.clone(),
+                            transform: scale_points[shift],
+                            visibility: Visibility::Hidden,
+                            ..default()
+                        },
+                        OnScale,
+                        On::<Pointer<Down>>::send_event::<RemoveWeight>(),
+                    ))
+                    .id(),
+            );
+        }
+
+        let mut shift: usize = WEIGHTS.len();
+        for _ in WEIGHTS {
+            shift -= 1;
+
+            on_scale_sus.push(
+                parent
+                    .spawn((
+                        PbrBundle {
+                            mesh: weight_mesh.clone(),
+                            material: sus_mat.clone(),
+                            transform: scale_points[shift],
+                            visibility: Visibility::Hidden,
+                            ..default()
+                        },
+                        OnScale,
+                        Sus,
+                        On::<Pointer<Down>>::send_event::<RemoveWeight>(),
+                    ))
+                    .id(),
+            );
         }
 
         let mut row = -1.0;
@@ -231,23 +271,64 @@ fn setup_scales(
         }
     });
 
+    let mut off_scale = vec![];
+    let mut off_scale_sus = vec![];
+
     //spawn weights
     let mut shift: usize = WEIGHTS.len();
-    for w in WEIGHTS {
+    for (i, w) in WEIGHTS.iter().enumerate() {
         shift -= 1;
 
-        cmd.spawn((
-            PbrBundle {
-                mesh: weight_mesh.clone(),
-                material: weight_mat.clone(),
-                transform: table_points[shift],
-                ..default()
-            },
-            Mass(w),
-            Index(shift as usize),
-            // PickableBundle::default(),
-            On::<Pointer<Down>>::send_event::<AddWeight>(),
-        ));
+        let on_scale = on_scale[i];
+        let disable = on_scale_sus[i];
+
+        let ent = cmd
+            .spawn((
+                PbrBundle {
+                    mesh: weight_mesh.clone(),
+                    material: weight_mat.clone(),
+                    transform: table_points[shift],
+                    ..default()
+                },
+                Mass(*w),
+                Index(on_scale),
+                Disables(disable),
+                // PickableBundle::default(),
+                On::<Pointer<Down>>::send_event::<AddWeight>(),
+            ))
+            .id();
+
+        cmd.entity(on_scale).insert(Index(ent));
+        off_scale.push(ent);
+    }
+
+    // the sus weights
+    let mut shift: usize = WEIGHTS.len();
+    for (i, w) in WEIGHTS.iter().enumerate() {
+        shift -= 1;
+
+        let translation = table_points[shift].translation + Vec3::new(0.0, -0.5, 0.5);
+        let disable = on_scale[i];
+        let on_scale = on_scale_sus[i];
+
+        let ent = cmd
+            .spawn((
+                PbrBundle {
+                    mesh: weight_mesh.clone(),
+                    material: sus_mat.clone(),
+                    transform: table_points[shift].with_translation(translation),
+                    ..default()
+                },
+                Mass(w / 2.0),
+                Index(on_scale),
+                Disables(disable),
+                Sus,
+                On::<Pointer<Down>>::send_event::<AddWeight>(),
+            ))
+            .id();
+
+        cmd.entity(on_scale).insert(Index(ent));
+        off_scale_sus.push(ent);
     }
 
     // submit bell thing
@@ -273,43 +354,56 @@ fn setup_scales(
 }
 
 fn add_weights(
-    mut free_weights: Query<(&mut Visibility, &Index, &Mass), Without<OnScale>>,
-    mut used_weights: Query<(&mut Visibility, &Index), With<OnScale>>,
+    mut free_weights: Query<(&mut Visibility, &Index, &Mass, &Disables, Option<&Sus>), Without<OnScale>>,
+    mut used_weights: Query<&mut Visibility, With<OnScale>>,
     mut scale_weights: ResMut<ScaleWeights>,
     mut events: EventReader<AddWeight>,
+    mut sus_events: EventWriter<SusEvent>,
+    mut remove_weight: EventWriter<RemoveWeight>,
 ) {
     for AddWeight(ent) in events.read() {
-        if let Ok((mut vis, idx, m)) = free_weights.get_mut(*ent) {
+        if let Ok((mut vis, idx, m, disable, sus)) = free_weights.get_mut(*ent) {
             *vis = Visibility::Hidden;
             scale_weights.left += **m;
 
             info!("Num weights on scale = {}", used_weights.iter().count());
-            if let Some((mut vis, _)) = used_weights
-                .iter_mut()
-                .find(|(_, used_idx)| used_idx.0 == idx.0)
-            {
+
+            if Ok(&Visibility::Visible) == used_weights.get(disable.0) {
+                remove_weight.send(RemoveWeight(disable.0));
+            }
+
+            if let Ok(mut vis) = used_weights.get_mut(idx.0) {
                 *vis = Visibility::Visible;
             } else {
                 warn!("Couldn't find weight on scale");
+            }
+
+            if sus.is_some() {
+                sus_events.send(SusEvent(*idx));
             }
         }
     }
 }
 
 fn remove_weights(
-    mut free_weights: Query<(&mut Visibility, &Index, &Mass), Without<OnScale>>,
-    mut used_weights: Query<(&mut Visibility, &Index), With<OnScale>>,
+    mut free_weights: Query<(&mut Visibility, &Index, &Mass), (Without<OnScale>, Without<Sus>)>,
+    mut free_sus_weights: Query<(&mut Visibility, &Index, &Mass), (Without<OnScale>, With<Sus>)>,
+
+    mut used_weights: Query<(&mut Visibility, &Index, Option<&Sus>), With<OnScale>>,
     mut scale_weights: ResMut<ScaleWeights>,
     mut events: EventReader<RemoveWeight>,
 ) {
     for RemoveWeight(ent) in events.read() {
-        if let Ok((mut vis, idx)) = used_weights.get_mut(*ent) {
+        if let Ok((mut vis, idx, sus)) = used_weights.get_mut(*ent) {
             *vis = Visibility::Hidden;
 
-            if let Some((mut vis, _, m)) = free_weights
-                .iter_mut()
-                .find(|(_, used_idx, _)| used_idx.0 == idx.0)
-            {
+            let off_scale = if sus.is_some() {
+                free_sus_weights.get_mut(idx.0)
+            } else {
+                free_weights.get_mut(idx.0)
+            };
+
+            if let Ok((mut vis, _, m)) = off_scale {
                 *vis = Visibility::Visible;
                 scale_weights.left -= **m;
             } else {
@@ -320,7 +414,7 @@ fn remove_weights(
 }
 
 fn set_weight(mut scale_weights: ResMut<ScaleWeights>, contents: Res<ScaleContents>) {
-    let weight = contents.values().fold(0.0, |last, v| last + v);
+    let weight = contents.values().sum();
     scale_weights.right = weight;
 }
 

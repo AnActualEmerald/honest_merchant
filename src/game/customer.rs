@@ -1,16 +1,22 @@
 use std::time::Duration;
 
-use bevy::{asset::LoadedFolder, prelude::*, utils::HashMap};
+use bevy::prelude::*;
+
+#[cfg(not(target_family = "wasm"))]
+use bevy::asset::LoadedFolder;
+use rand::prelude::*;
 
 use crate::{
     assets::CharacterTraits,
-    utils::{despawn_all, spawn_text_box, text_box::TextBox},
+    utils::{
+        despawn_all, text_box::{SpawnTextBox, TextBox},
+        CalcCost, Ratios,
+    },
 };
 
 use super::{
-    goods::ItemType,
-    scales::{self, ScaleWeights, Submit, ScaleContents},
-    Advance, GameState, TargetWeight,
+    scales::{self, ScaleContents, ScaleWeights, Submit},
+    Advance, DailyGold, GameState, TargetWeight,
 };
 
 #[allow(dead_code)]
@@ -26,6 +32,16 @@ pub enum CustomerState {
     #[default]
     End,
 }
+
+#[derive(Debug, Default, States, Clone, Copy, Hash, PartialEq, Eq)]
+pub enum AttentionState {
+    #[default]
+    Attent,
+    Ignore,
+}
+
+#[derive(Resource, Default, Clone, Debug, Deref, DerefMut)]
+pub struct AttentionTimer(Timer);
 
 #[derive(Component)]
 pub struct Customer(Handle<CharacterTraits>);
@@ -46,6 +62,7 @@ pub struct CustomerPlugin;
 impl Plugin for CustomerPlugin {
     fn build(&self, app: &mut App) {
         app.add_state::<CustomerState>()
+            .add_state::<AttentionState>()
             .init_resource::<TargetWeight>()
             .add_systems(Startup, |mut cmd: Commands, ass: Res<AssetServer>| {
                 // preload (or try to preload) all the customer character files
@@ -63,6 +80,7 @@ impl Plugin for CustomerPlugin {
                 }
             })
             .add_systems(Update, (handle_submit, wait_to_advance))
+            .add_systems(OnEnter(CustomerState::Payment), pay)
             .add_systems(
                 Update,
                 handle_review.run_if(in_state(CustomerState::Review)),
@@ -86,7 +104,8 @@ fn spawn_customer(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut state: ResMut<NextState<CustomerState>>,
-    mut characters: ResMut<Assets<CharacterTraits>>,
+    // mut characters: ResMut<Assets<CharacterTraits>>,
+    ass: Res<AssetServer>,
 ) {
     cmd.spawn((
         PbrBundle {
@@ -99,17 +118,8 @@ fn spawn_customer(
             transform: Transform::from_translation(CUSTOMER_STAND_POINT + Vec3::new(0.0, 1.0, 0.0)),
             ..default()
         },
-        Customer(characters.add(CharacterTraits {
-            name: "dumb".into(),
-            greeting: vec!["Wonderful weather we're having".into()],
-            thinking: "Hmm...".into(),
-            accept: "Ah, perfect!".into(),
-            reject: "Uh, no. I don't think that's right.".into(),
-            accuse: "Hey! What are you trying to pull!".into(),
-            request: super::ItemRequest(HashMap::from([(ItemType::SpiderEyes, 10.0)])),
-            attention_type: super::AttentionType::Distracted,
-            max_gold: 100,
-        })),
+
+        Customer(ass.load("customers/dumb.chr.ron")),
     ));
 
     state.set(CustomerState::Greeting);
@@ -124,6 +134,7 @@ fn show_text(
     cust_q: Query<&Customer>,
     state: Res<State<CustomerState>>,
     chars: Res<Assets<CharacterTraits>>,
+    mut spawn_text: EventWriter<SpawnTextBox>,
 ) {
     // .get_single wasn't working consistently here
     for char in cust_q.iter() {
@@ -134,24 +145,25 @@ fn show_text(
 
         match **state {
             CustomerState::Greeting => {
-                spawn_text_box(&mut cmd, &ty.greeting[0]);
+                spawn_text.send(SpawnTextBox(ty.greeting.clone()));
             }
             CustomerState::Request => {
                 let req_text = format!("{} please", ty.request);
-                spawn_text_box(&mut cmd, req_text);
+                spawn_text.send(req_text.into());
                 cmd.insert_resource(TargetWeight::from(&ty.request));
             }
             CustomerState::Review => {
-                spawn_text_box(&mut cmd, &ty.thinking);
+                spawn_text.send(ty.thinking.clone().into());
             }
             CustomerState::Payment => {
-                spawn_text_box(
-                    &mut cmd,
-                    format!("{} Here's {} gold", ty.accept, ty.max_gold),
-                );
+                spawn_text.send(format!(
+                    "{} Here's {} gold",
+                    ty.accept,
+                    ty.request.customer_cost()
+                ).into());
             }
             CustomerState::Reject => {
-                spawn_text_box(&mut cmd, &ty.reject);
+                spawn_text.send(ty.reject.clone().into());
             }
             _ => {}
         }
@@ -186,6 +198,10 @@ fn wait_to_advance(
     }
 }
 
+fn pay(mut gold: ResMut<DailyGold>, target: Res<TargetWeight>) {
+    **gold += target.customer_cost();
+}
+
 fn handle_review(
     scale_weights: Res<ScaleWeights>,
     contents: Res<ScaleContents>,
@@ -199,16 +215,15 @@ fn handle_review(
 
         if timer.just_finished() {
             info!("{contents:?} vs {target:?}");
-            if scale_weights.is_even() && **contents == **target {
+            if scale_weights.is_even() && contents.ratio() == target.ratio() {
                 state.set(CustomerState::Payment);
             } else {
                 state.set(CustomerState::Reject);
-
             }
         }
     } else {
         *timer = Timer::new(
-            Duration::from_secs_f32(1.0 * rand::random::<f32>() + 1.0),
+            Duration::from_secs_f32(thread_rng().gen_range(1.0..=3.0)),
             TimerMode::Once,
         );
         return;
