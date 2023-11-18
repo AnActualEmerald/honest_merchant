@@ -34,6 +34,7 @@ pub enum CustomerState {
     End,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Default, States, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum AttentionState {
     #[default]
