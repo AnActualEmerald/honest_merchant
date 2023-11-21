@@ -6,6 +6,7 @@ use crowd::CrowdPlugin;
 use game::GamePlugin;
 use input::InputPlugin;
 use player::PlayerPlugin;
+use ui::UiPlugin;
 use utils::UtilPlugin;
 use world::WorldPlugin;
 use assets::AssetPlugin;
@@ -18,6 +19,7 @@ mod crowd;
 mod game;
 mod assets;
 mod utils;
+mod ui;
 
 pub const WINDOW_SIZE: Vec2 = Vec2::new(800.0, 600.0);
 
@@ -36,7 +38,7 @@ fn main() {
             DefaultPickingPlugins,
             BillboardPlugin,
         ))
-        .add_plugins((UtilPlugin, AssetPlugin, CrowdPlugin, InputPlugin, WorldPlugin, GamePlugin, PlayerPlugin))
+        .add_plugins((UtilPlugin, UiPlugin, AssetPlugin, CrowdPlugin, InputPlugin, WorldPlugin, GamePlugin, PlayerPlugin))
         .add_systems(Startup, setup)
         .run();
 }

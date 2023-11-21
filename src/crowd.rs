@@ -84,7 +84,7 @@ fn randomize_crowd(
     mut anims: Query<&mut Animator<Transform>, With<CrowdMember>>,
     textures: Res<CrowdTextures>,
 ) {
-    let mut rng = thread_rng();
+    let mut rng = SmallRng::from_entropy();
     for e in events.read() {
         let Ok(mut animator) = anims.get_mut(e.entity) else {
             continue;

@@ -1,4 +1,5 @@
 use bevy::{prelude::*, utils::HashMap};
+use rand::prelude::*;
 use serde::Deserialize;
 
 use self::{
@@ -11,15 +12,18 @@ mod customer;
 mod goods;
 mod scales;
 
+pub use goods::ItemType;
 pub use goods::ITEM_COST;
 pub use scales::ScaleContents;
-pub use goods::ItemType;
 
 #[derive(Resource, Default, Deref, DerefMut, Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct TotalGold(f32);
 
 #[derive(Resource, Default, Deref, DerefMut, Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct DailyGold(f32);
+
+#[derive(Resource, Default, Deref, DerefMut, Debug, Clone, Copy, PartialEq, PartialOrd)]
+pub struct DailyExpenses(f32);
 
 #[derive(Event, Default, Debug, Clone, Copy)]
 pub struct Advance;
@@ -90,6 +94,28 @@ pub enum AttentionType {
     Alert,
 }
 
+impl AttentionType {
+    /// Returns the odds of becoming distracted and undistracted resepectively
+    fn weights(&self) -> [(u32, u32); 2] {
+        match self {
+            Self::Alert => [(1, 100), (3, 4)],
+            Self::Attentive => [(2, 50), (1, 2)],
+            Self::Distracted => [(80, 90), (1, 500)],
+            Self::Normal => [(1, 2), (1, 2)],
+        }
+    }
+
+    /// Returns the percentage the amount has to be wrong for the customer to notice
+    fn sus_threshold(&self) -> f32 {
+        match self {
+            Self::Alert => 0.1,
+            Self::Attentive => 0.3,
+            Self::Distracted => 0.7,
+            Self::Normal => 0.5,
+        }
+    }
+}
+
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, Default, States, PartialEq, Eq, Hash)]
 pub enum GameState {
@@ -120,38 +146,63 @@ impl Plugin for GamePlugin {
         app.add_plugins((CustomerPlugin, ScalesPlugin, GoodsPlugin))
             .init_resource::<TotalGold>()
             .init_resource::<DailyGold>()
+            .init_resource::<DailyExpenses>()
             .add_state::<GameState>()
             .add_event::<Advance>()
             .add_event::<UpdateScore>()
-            .insert_resource(CustomerTimer(Timer::from_seconds(
-                5.0,
-                TimerMode::Repeating,
-            )))
-            .add_systems(
-                PreUpdate,
-                wait_for_customer.run_if(
-                    resource_exists::<CustomerTimer>().and_then(in_state(GameState::Waiting)),
-                ),
-            )
+            .insert_resource(CustomerTimer(Timer::from_seconds(5.0, TimerMode::Once)))
+            .insert_resource(DayTimer(Timer::from_seconds(60.0, TimerMode::Once)))
             .add_systems(
                 Update,
-                (customer_end).run_if(
-                    in_state(GameState::Customer).and_then(state_changed::<CustomerState>()),
+                wait_for_customer.run_if(resource_exists::<CustomerTimer>()),
+            )
+            .add_systems(OnEnter(CustomerState::End), customer_end)
+            .add_systems(
+                Update,
+                (
+                    tick_day,
+                    finish_day.run_if(in_state(GameState::Waiting)),
                 ),
             );
     }
 }
 
-fn customer_end(mut state: ResMut<NextState<GameState>>, cust_state: Res<State<CustomerState>>) {
-    if CustomerState::End == **cust_state {
-        state.set(GameState::Waiting);
+fn finish_day(
+    timer: Res<DayTimer>,
+    mut state: ResMut<NextState<GameState>>,
+) {
+    if timer.finished() {
+        state.set(GameState::DayEnd);
     }
 }
 
-fn wait_for_customer(mut cmd: Commands, mut timer: ResMut<CustomerTimer>, time: Res<Time>) {
+fn tick_day(mut timer: ResMut<DayTimer>, time: Res<Time>) {
     timer.tick(time.delta());
+}
 
-    if timer.just_finished() {
-        cmd.insert_resource(NextState(Some(GameState::Customer)));
+fn customer_end(
+    mut timer: ResMut<CustomerTimer>,
+    mut state: ResMut<NextState<GameState>>,
+) {
+    state.set(GameState::Waiting);
+    let mut rng = SmallRng::from_entropy();
+    *timer = CustomerTimer(Timer::from_seconds(
+        rng.gen_range(3.0..=10.0),
+        TimerMode::Once,
+    ));
+}
+
+fn wait_for_customer(
+    mut timer: ResMut<CustomerTimer>,
+    time: Res<Time>,
+    curr_state: Res<State<GameState>>,
+    mut state: ResMut<NextState<GameState>>,
+) {
+    if **curr_state == GameState::Waiting {
+        timer.tick(time.delta());
+
+        if timer.just_finished() {
+            state.set(GameState::Customer);
+        }
     }
 }

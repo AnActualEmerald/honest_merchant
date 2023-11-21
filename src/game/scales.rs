@@ -4,6 +4,8 @@ use bevy::{prelude::*, utils::HashMap};
 use bevy_mod_picking::prelude::*;
 use bevy_tweening::{lens::TransformRotationLens, *};
 
+use crate::ui::tooltips::{TooltipText, TooltipBundle};
+
 use super::goods::{ItemType, RemoveItem, ITEM_COLORS};
 
 pub const MAX_ROTATION_DEGREES: f32 = 30.0;
@@ -193,7 +195,7 @@ fn setup_scales(
     ))
     .with_children(|parent| {
         let mut shift: usize = WEIGHTS.len();
-        for _ in WEIGHTS {
+        for m in WEIGHTS {
             shift -= 1;
 
             on_scale.push(
@@ -207,6 +209,7 @@ fn setup_scales(
                             ..default()
                         },
                         OnScale,
+                        TooltipBundle::new(format!("{m} grams")),
                         On::<Pointer<Down>>::send_event::<RemoveWeight>(),
                     ))
                     .id(),
@@ -214,7 +217,7 @@ fn setup_scales(
         }
 
         let mut shift: usize = WEIGHTS.len();
-        for _ in WEIGHTS {
+        for m in WEIGHTS {
             shift -= 1;
 
             on_scale_sus.push(
@@ -229,6 +232,7 @@ fn setup_scales(
                         },
                         OnScale,
                         Sus,
+                        TooltipBundle::new(format!("{m} grams")),
                         On::<Pointer<Down>>::send_event::<RemoveWeight>(),
                     ))
                     .id(),
@@ -293,6 +297,7 @@ fn setup_scales(
                 Mass(*w),
                 Index(on_scale),
                 Disables(disable),
+                TooltipBundle::new(format!("{w} grams")),
                 // PickableBundle::default(),
                 On::<Pointer<Down>>::send_event::<AddWeight>(),
             ))
@@ -322,6 +327,7 @@ fn setup_scales(
                 Mass(w / 2.0),
                 Index(on_scale),
                 Disables(disable),
+                TooltipBundle::new(format!("{w} grams")),
                 Sus,
                 On::<Pointer<Down>>::send_event::<AddWeight>(),
             ))

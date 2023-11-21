@@ -1,7 +1,11 @@
+pub mod lenses;
 pub mod text_box;
+use std::time::Duration;
+
 use leafwing_input_manager::prelude::ActionState;
 
 use bevy::{prelude::*, utils::HashMap};
+use bevy_tweening::*;
 
 use crate::{
     game::{Advance, ItemType, ITEM_COST},
@@ -15,6 +19,14 @@ pub struct UtilPlugin;
 impl Plugin for UtilPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<SpawnTextBox>()
+            .add_systems(
+                Update,
+                (
+                    component_animator_system::<Text>.in_set(AnimationSystem::AnimationUpdate),
+                    component_animator_system::<BackgroundColor>
+                        .in_set(AnimationSystem::AnimationUpdate),
+                ),
+            )
             .add_systems(Update, (spawn_text_box, step_text.after(spawn_text_box)))
             .add_systems(PostStartup, initial_offset);
     }
@@ -27,7 +39,6 @@ fn step_text(
     time: Res<Time>,
 ) {
     for (mut text, mut timed) in text_q.iter_mut() {
-        info!("Text step");
         if timed.index <= timed.text.len() {
             if timed.timer.tick(time.delta()).just_finished() {
                 text.sections[0].value = timed.text[..timed.index].to_string();
@@ -115,5 +126,39 @@ impl Ratios for HashMap<ItemType, f32> {
                 (*k, r)
             })
             .collect()
+    }
+}
+
+pub trait Total {
+    type Output;
+    fn total(&self) -> Self::Output;
+}
+
+impl<K> Total for HashMap<K, f32> {
+    type Output = f32;
+
+    fn total(&self) -> Self::Output {
+        self.values().sum()
+    }
+}
+
+pub trait PercentDiff {
+    fn diff(&self, other: &Self) -> f32;
+}
+
+impl PercentDiff for HashMap<ItemType, f32> {
+    fn diff(&self, other: &Self) -> f32 {
+        let diff = self.total() - other.total();
+        (diff / self.total()).abs()
+    }
+}
+
+pub trait Delayable<T> {
+    fn with_delay(self, duration: Duration) -> Sequence<T>;
+}
+
+impl<T: 'static> Delayable<T> for Tween<T> {
+    fn with_delay(self, duration: Duration) -> Sequence<T> {
+        Delay::new(duration).then(self)
     }
 }
