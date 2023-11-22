@@ -1,0 +1,21 @@
+(
+    name: "attentive",
+    greeting: [
+        "Hello. I would like to purchase some of your goods.",
+    ],
+    thinking: "Let's see...",
+    accept: "That will do.",
+    reject: "Do you take me for a fool?",
+    accuse: "The village guard will hear of this!",
+    request: [({
+        VibrantSyrup: 10.0,
+    }),
+    ({
+        Berries: 10.0,
+    }),
+    ({
+        GreenMush: 10.0,
+    })
+    ],
+    attention_type: Attentive,
+)

@@ -1,0 +1,15 @@
+(
+    name: "cop",
+    greeting: [
+        "Hey there, champ.",
+    ],
+    thinking: "...",
+    accept: "Thanks.",
+    reject: "Nope.",
+    accuse: "If I were on duty, you'd be under arrest!",
+    request: [({
+        Berries: 2.0,
+    })],
+    attention_type: Alert,
+    max_gold: 100
+)

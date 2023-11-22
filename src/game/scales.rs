@@ -4,7 +4,7 @@ use bevy::{prelude::*, utils::HashMap};
 use bevy_mod_picking::prelude::*;
 use bevy_tweening::{lens::TransformRotationLens, *};
 
-use crate::ui::tooltips::{TooltipText, TooltipBundle};
+use crate::ui::tooltips::TooltipBundle;
 
 use super::goods::{ItemType, RemoveItem, ITEM_COLORS};
 
@@ -232,7 +232,7 @@ fn setup_scales(
                         },
                         OnScale,
                         Sus,
-                        TooltipBundle::new(format!("{m} grams")),
+                        TooltipBundle::new(format!("{} grams", m / 2.0)),
                         On::<Pointer<Down>>::send_event::<RemoveWeight>(),
                     ))
                     .id(),
@@ -327,7 +327,7 @@ fn setup_scales(
                 Mass(w / 2.0),
                 Index(on_scale),
                 Disables(disable),
-                TooltipBundle::new(format!("{w} grams")),
+                TooltipBundle::new(format!("{} grams", w / 2.0)),
                 Sus,
                 On::<Pointer<Down>>::send_event::<AddWeight>(),
             ))

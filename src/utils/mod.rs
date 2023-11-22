@@ -2,14 +2,15 @@ pub mod lenses;
 pub mod text_box;
 use std::time::Duration;
 
+use bevy_eventlistener::prelude::*;
 use leafwing_input_manager::prelude::ActionState;
 
 use bevy::{prelude::*, utils::HashMap};
 use bevy_tweening::*;
 
 use crate::{
-    game::{Advance, ItemType, ITEM_COST},
-    input::Action,
+    game::{Advance, ItemType, ITEM_COST, GameState},
+    input::Action, assets::Fonts,
 };
 
 use self::text_box::{spawn_text_box, SpawnTextBox, TimedText};
@@ -19,6 +20,7 @@ pub struct UtilPlugin;
 impl Plugin for UtilPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<SpawnTextBox>()
+            .add_plugins(EventListenerPlugin::<TweenDone>::default())
             .add_systems(
                 Update,
                 (
@@ -27,7 +29,7 @@ impl Plugin for UtilPlugin {
                         .in_set(AnimationSystem::AnimationUpdate),
                 ),
             )
-            .add_systems(Update, (spawn_text_box, step_text.after(spawn_text_box)))
+            .add_systems(Update, (send_entity_events, spawn_text_box, step_text.after(spawn_text_box)).run_if(resource_exists::<Fonts>()))
             .add_systems(PostStartup, initial_offset);
     }
 }
@@ -63,6 +65,34 @@ fn initial_offset(mut q: Query<(&mut Transform, &Offset)>) {
 pub fn despawn_all<T: Component>(mut cmd: Commands, q: Query<Entity, With<T>>) {
     for ent in q.iter() {
         cmd.entity(ent).despawn_recursive();
+    }
+}
+
+pub fn send_entity_events(mut events: EventWriter<TweenDone>, mut reader: EventReader<TweenCompleted>) {
+    events.send_batch(reader.read().map(|e| e.into()));
+}
+
+#[derive(Event, EntityEvent, Debug, Clone)]
+pub struct TweenDone {
+    #[target]
+    pub target: Entity,
+    pub id: u64
+}
+
+impl From<TweenCompleted> for TweenDone {
+    fn from(value: TweenCompleted) -> Self {
+        Self {
+            target: value.entity,
+            id: value.user_data,
+        }
+    }
+}
+impl From<&TweenCompleted> for TweenDone {
+    fn from(value: &TweenCompleted) -> Self {
+        Self {
+            target: value.entity,
+            id: value.user_data,
+        }
     }
 }
 

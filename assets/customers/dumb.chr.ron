@@ -1,15 +1,23 @@
 (
     name: "dumb",
     greeting: [
-        "Wonderful weather we're having",
+        "Howdy!",
     ],
     thinking: "Hmm...",
-    accept: "Ah, perfect!",
-    reject: "Uh, no. I don't think that's right",
-    accuse: "Hey, what are you trying to pull!",
-    request: ({
-        SpiderEyes: 10.0,
-    }),
+    accept: "That'll do I reckon.",
+    reject: "Naw, that's not what I wanted",
+    accuse: "Hey, I saw that!",
+    request: [
+        ({
+            SpiderEyes: 10.0,
+        }),
+        ({
+            Berries: 5.0,
+        }),
+        ({
+            GreenMush: 2.0,
+            SpiderEyes: 3.0,
+        })
+    ],
     attention_type: Distracted,
-    max_gold: 100
 )

@@ -2,8 +2,11 @@ use bevy::{prelude::*, utils::HashMap};
 use rand::prelude::*;
 use serde::Deserialize;
 
+use crate::assets::CharacterTraits;
+use crate::assets::Characters;
+
 use self::{
-    customer::{CustomerPlugin, CustomerState},
+    customer::CustomerPlugin,
     goods::GoodsPlugin,
     scales::ScalesPlugin,
 };
@@ -12,6 +15,7 @@ mod customer;
 mod goods;
 mod scales;
 
+pub use customer::CustomerState;
 pub use goods::ItemType;
 pub use goods::ITEM_COST;
 pub use scales::ScaleContents;
@@ -117,9 +121,10 @@ impl AttentionType {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Clone, Copy, Default, States, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, States, PartialEq, Eq, Hash)]
 pub enum GameState {
-    #[default]
+    MainMenu,
+    Loading,
     Waiting,
     DayStart,
     DayEnd,
@@ -127,17 +132,28 @@ pub enum GameState {
     Dialogue,
 }
 
+impl Default for GameState {
+    fn default() -> Self {
+        info!("Init GameState");
+        Self::Loading
+    }
+}
+
+
+
 #[derive(Resource, Debug, Clone, Deref, DerefMut)]
 pub struct DayTimer(Timer);
 
 #[derive(Resource, Debug, Clone, Deref, DerefMut)]
 pub struct CustomerTimer(Timer);
 
-#[derive(Event, Debug, Clone, Copy, Default)]
-pub struct UpdateScore {
-    pub rep: f32,
-    pub gold: f32,
-}
+#[derive(Resource, Debug, Clone, Copy, Deref, DerefMut, Default)]
+pub struct DayIndex(usize);
+
+#[derive(Resource, Debug, Clone, Deref, DerefMut, Default)]
+pub struct AvailableCustomers(Vec<Handle<CharacterTraits>>);
+
+pub const DAY_LEN: f32 = 90.0;
 
 pub struct GamePlugin;
 
@@ -147,32 +163,52 @@ impl Plugin for GamePlugin {
             .init_resource::<TotalGold>()
             .init_resource::<DailyGold>()
             .init_resource::<DailyExpenses>()
+            .init_resource::<DayIndex>()
+            .init_resource::<AvailableCustomers>()
             .add_state::<GameState>()
             .add_event::<Advance>()
-            .add_event::<UpdateScore>()
             .insert_resource(CustomerTimer(Timer::from_seconds(5.0, TimerMode::Once)))
-            .insert_resource(DayTimer(Timer::from_seconds(60.0, TimerMode::Once)))
+            .insert_resource(DayTimer(Timer::from_seconds(DAY_LEN, TimerMode::Once)))
             .add_systems(
                 Update,
-                wait_for_customer.run_if(resource_exists::<CustomerTimer>()),
+                wait_for_customer.run_if(resource_exists::<CustomerTimer>().and_then(in_state(GameState::Waiting))),
             )
-            .add_systems(OnEnter(CustomerState::End), customer_end)
+            .add_systems(OnEnter(CustomerState::End), customer_end.run_if(in_state(GameState::Customer)))
             .add_systems(
                 Update,
                 (
                     tick_day,
                     finish_day.run_if(in_state(GameState::Waiting)),
                 ),
-            );
+            ).add_systems(OnEnter(GameState::DayStart), (start_day, customer_end));
     }
+}
+
+fn start_day(mut gold: ResMut<DailyGold>, mut expenses: ResMut<DailyExpenses>, mut state: ResMut<NextState<GameState>>, mut timer: ResMut<DayTimer>, mut available: ResMut<AvailableCustomers>, day: Res<DayIndex>, customers: Res<Characters>) {
+    **gold = 0.0;
+    **expenses = 0.0;
+    timer.reset();
+
+    *available = match **day {
+        0 => AvailableCustomers(vec![customers.dumb.clone()]),
+        1 => AvailableCustomers(vec![customers.dumb.clone(), customers.normal.clone()]),
+        2 => AvailableCustomers(vec![customers.normal.clone(), customers.attentive.clone()]),
+        3 => AvailableCustomers(vec![customers.normal.clone(), customers.attentive.clone(), customers.cop.clone()]),
+        4 => AvailableCustomers(vec![customers.attentive.clone(), customers.cop.clone()]),
+        _ => AvailableCustomers::default()
+    };
+
+    state.set(GameState::Waiting);
 }
 
 fn finish_day(
     timer: Res<DayTimer>,
     mut state: ResMut<NextState<GameState>>,
+    mut day: ResMut<DayIndex>
 ) {
     if timer.finished() {
         state.set(GameState::DayEnd);
+        **day += 1;
     }
 }
 

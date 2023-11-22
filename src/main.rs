@@ -1,25 +1,24 @@
+use assets::AssetPlugin;
 use bevy::prelude::*;
 use bevy_mod_billboard::plugin::BillboardPlugin;
-use bevy_tweening::TweeningPlugin;
 use bevy_mod_picking::prelude::*;
+use bevy_tweening::TweeningPlugin;
 use crowd::CrowdPlugin;
-use game::GamePlugin;
+use game::{CustomerState, GamePlugin, GameState};
 use input::InputPlugin;
 use player::PlayerPlugin;
-use ui::UiPlugin;
+use ui::{MenuState, UiPlugin};
 use utils::UtilPlugin;
 use world::WorldPlugin;
-use assets::AssetPlugin;
 
-
-mod input;
-mod player;
-mod world;
+mod assets;
 mod crowd;
 mod game;
-mod assets;
-mod utils;
+mod input;
+mod player;
 mod ui;
+mod utils;
+mod world;
 
 pub const WINDOW_SIZE: Vec2 = Vec2::new(800.0, 600.0);
 
@@ -38,11 +37,34 @@ fn main() {
             DefaultPickingPlugins,
             BillboardPlugin,
         ))
-        .add_plugins((UtilPlugin, UiPlugin, AssetPlugin, CrowdPlugin, InputPlugin, WorldPlugin, GamePlugin, PlayerPlugin))
+        .add_plugins((
+            UtilPlugin,
+            AssetPlugin,
+            CrowdPlugin,
+            InputPlugin,
+            WorldPlugin,
+            GamePlugin,
+            PlayerPlugin,
+            UiPlugin,
+        ))
         .add_systems(Startup, setup)
+        .add_systems(Update, log_states)
         .run();
 }
 
-fn setup() {//mut cmd: Commands) {
-    // set up stuff
+fn setup() { //mut cmd: Commands) {
+             // set up stuff
+}
+
+fn log_states(
+    game_state: Res<State<GameState>>,
+    cust_state: Res<State<CustomerState>>,
+    menu_state: Res<State<MenuState>>,
+) {
+    info!(
+        "Program state:\n{:?}\n{:?}\n{:?}",
+        game_state.get(),
+        cust_state.get(),
+        menu_state.get()
+    );
 }

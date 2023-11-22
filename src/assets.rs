@@ -2,17 +2,43 @@ use bevy::{
     asset::{AssetLoader, AsyncReadExt},
     prelude::*,
 };
+use bevy_asset_loader::prelude::*;
 use serde::Deserialize;
 use thiserror::Error;
 
-use crate::game::{AttentionType, ItemRequest};
+use crate::game::{AttentionType, GameState, ItemRequest};
+
+#[derive(AssetCollection, Resource)]
+pub struct Fonts {
+    #[asset(path = "fonts/Inconsolata-Medium.ttf")]
+    pub default: Handle<Font>,
+    #[asset(path = "fonts/Lugrasimo-Regular.ttf")]
+    pub handwritten: Handle<Font>,
+}
+
+#[derive(AssetCollection, Resource)]
+pub struct Characters {
+    #[asset(path = "customers/dumb.chr.ron")]
+    pub dumb: Handle<CharacterTraits>,
+    #[asset(path = "customers/attentive.chr.ron")]
+    pub attentive: Handle<CharacterTraits>,
+    #[asset(path = "customers/normal.chr.ron")]
+    pub normal: Handle<CharacterTraits>,
+    #[asset(path = "customers/cop.chr.ron")]
+    pub cop: Handle<CharacterTraits>,
+}
 
 pub struct AssetPlugin;
 
 impl Plugin for AssetPlugin {
     fn build(&self, app: &mut App) {
         app.init_asset::<CharacterTraits>()
-            .init_asset_loader::<CharacteristicsLoader>();
+            .init_asset_loader::<CharacteristicsLoader>()
+            .add_loading_state(
+                LoadingState::new(GameState::Loading).continue_to_state(GameState::DayStart),
+            )
+            .add_collection_to_loading_state::<_, Fonts>(GameState::Loading)
+            .add_collection_to_loading_state::<_, Characters>(GameState::Loading);
     }
 }
 
@@ -24,10 +50,9 @@ pub enum LoaderError {
     RonError(#[from] ron::error::SpannedError),
 }
 
-
 // character files
 
-#[derive(Asset, TypePath, Debug, Deserialize)]
+#[derive(Asset, TypePath, Debug, Deserialize, Clone)]
 pub struct CharacterTraits {
     pub name: String,
     pub greeting: Vec<String>,
@@ -35,7 +60,7 @@ pub struct CharacterTraits {
     pub accept: String,
     pub reject: String,
     pub accuse: String,
-    pub request: ItemRequest,
+    pub request: Vec<ItemRequest>,
     pub attention_type: AttentionType,
 }
 

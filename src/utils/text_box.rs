@@ -2,6 +2,8 @@ use std::time::Duration;
 
 use bevy::prelude::*;
 
+use crate::assets::Fonts;
+
 #[derive(Component, Debug, Clone)]
 pub struct TimedText {
     pub timer: Timer,
@@ -26,7 +28,7 @@ impl<T: Into<String>> From<T> for SpawnTextBox {
 
 pub fn spawn_text_box(
     mut cmd: Commands,
-    ass: Res<AssetServer>,
+    fonts: Res<Fonts>,
     mut events: EventReader<SpawnTextBox>,
 ) {
     for e in events.read() {
@@ -56,7 +58,7 @@ pub fn spawn_text_box(
                         text: Text::from_section(
                             "",
                             TextStyle {
-                                font: ass.load("fonts/Inconsolata-Medium.ttf"),
+                                font: fonts.default.clone(),
                                 ..default()
                             },
                         ),

@@ -34,6 +34,17 @@ pub enum ItemType {
     VibrantSyrup,
 }
 
+impl std::fmt::Display for ItemType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Berries => write!(f, "berries"),
+            Self::GreenMush => write!(f, "green mush"),
+            Self::SpiderEyes => write!(f, "spider eyes"),
+            Self::VibrantSyrup => write!(f, "vibrant syrup"),
+        }
+    }
+}
+
 #[derive(Event, Deref)]
 pub struct AddItem(Entity);
 

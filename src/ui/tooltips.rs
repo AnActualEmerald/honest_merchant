@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
 
+use crate::{assets::Fonts, game::GameState};
+
 #[derive(Event)]
 pub struct ShowTooltip(Entity, Vec2);
 
@@ -57,7 +59,7 @@ impl Plugin for TooltipPlugin {
         app.add_event::<ShowTooltip>()
             .add_event::<RemoveTooltip>()
             .add_systems(PreUpdate, update_tooltips)
-            .add_systems(Update, (show_tooltips, despawn_tooltips));
+            .add_systems(Update, (show_tooltips, despawn_tooltips).run_if(resource_exists::<Fonts>()));
     }
 }
 
@@ -112,7 +114,7 @@ fn show_tooltips(
     mut er: EventReader<ShowTooltip>,
     mut cmd: Commands,
     q: Query<&TooltipText>,
-    ass: Res<AssetServer>,
+    fonts: Res<Fonts>,
 ) {
     for event in er.read() {
         if let Ok(text) = q.get(event.0) {
@@ -128,7 +130,7 @@ fn show_tooltips(
                     text: Text::from_section(
                         text.0.clone(),
                         TextStyle {
-                            font: ass.load("fonts/Inconsolata-Medium.ttf"),
+                            font: fonts.default.clone(),
                             color: Color::BLACK,
                             ..default()
                         },

@@ -17,7 +17,7 @@ use crate::{
 
 use super::{
     scales::{self, ScaleContents, ScaleWeights, Submit, SusEvent},
-    Advance, DailyGold, GameState, TargetWeight, DailyExpenses,
+    Advance, DailyExpenses, DailyGold, GameState, TargetWeight, AvailableCustomers,
 };
 
 #[allow(dead_code)]
@@ -128,8 +128,9 @@ fn spawn_customer(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut state: ResMut<NextState<CustomerState>>,
-    ass: Res<AssetServer>,
+    available: Res<AvailableCustomers>,
 ) {
+    let mut rng = SmallRng::from_entropy();
     cmd.spawn((
         PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Capsule {
@@ -141,7 +142,7 @@ fn spawn_customer(
             transform: Transform::from_translation(CUSTOMER_STAND_POINT + Vec3::new(0.0, 1.0, 0.0)),
             ..default()
         },
-        Customer(ass.load("customers/dumb.chr.ron")),
+        Customer(available.choose(&mut rng).expect("No available customer types").clone()),
     ));
 
     state.set(CustomerState::Greeting);
@@ -201,10 +202,10 @@ fn cleanup(mut tw: ResMut<TargetWeight>) {
 }
 
 fn show_text(
-    mut cmd: Commands,
     cust_q: Query<&Customer>,
     state: Res<State<CustomerState>>,
     chars: Res<Assets<CharacterTraits>>,
+    mut target: ResMut<TargetWeight>,
     mut spawn_text: EventWriter<SpawnTextBox>,
 ) {
     // .get_single wasn't working consistently here
@@ -219,17 +220,18 @@ fn show_text(
                 spawn_text.send(SpawnTextBox(ty.greeting.clone()));
             }
             CustomerState::Request => {
-                let req_text = format!("{} please", ty.request);
+                let mut rng = SmallRng::from_entropy();
+                let req = ty.request.choose(&mut rng).expect("No item requests");
+                let req_text = format!("{} please", req);
                 spawn_text.send(req_text.into());
-                cmd.insert_resource(TargetWeight::from(&ty.request));
+                *target = TargetWeight::from(req);
             }
             CustomerState::Review => {
                 spawn_text.send(ty.thinking.clone().into());
             }
             CustomerState::Payment => {
-                spawn_text.send(
-                    format!("{} Here's {} gold", ty.accept, ty.request.customer_cost()).into(),
-                );
+                spawn_text
+                    .send(format!("{} Here's {} gold", ty.accept, target.customer_cost()).into());
             }
             CustomerState::Reject => {
                 spawn_text.send(ty.reject.clone().into());
@@ -268,7 +270,12 @@ fn wait_to_advance(
     }
 }
 
-fn pay(mut gold: ResMut<DailyGold>, mut expenses: ResMut<DailyExpenses>, target: Res<TargetWeight>, contents: Res<ScaleContents>) {
+fn pay(
+    mut gold: ResMut<DailyGold>,
+    mut expenses: ResMut<DailyExpenses>,
+    target: Res<TargetWeight>,
+    contents: Res<ScaleContents>,
+) {
     **gold += target.customer_cost();
     **expenses += contents.cost();
 }

@@ -1,0 +1,15 @@
+(
+    name: "normal",
+    greeting: [
+        "Wonderful weather we're having",
+    ],
+    thinking: "Hmm...",
+    accept: "Ah, perfect!",
+    reject: "Uh, no. I don't think that's right",
+    accuse: "Hey, what are you trying to pull!",
+    request: [({
+        SpiderEyes: 10.0,
+    })],
+    attention_type: Distracted,
+    max_gold: 100
+)
