@@ -6,6 +6,7 @@ use self::{day_end_menu::DayEndPlugin, tooltips::TooltipPlugin, player_ui::Playe
 
 mod day_end_menu;
 mod player_ui;
+mod game_over;
 pub mod tooltips;
 
 #[derive(States, Debug, Hash, PartialEq, Eq, Clone, Copy, Default)]

@@ -45,6 +45,9 @@ impl From<ListenerInput<Pointer<Down>>> for Submit {
     }
 }
 
+#[derive(Resource, Default, Clone, Copy)]
+pub struct ScaleIsSus;
+
 #[derive(Component, Debug, Clone, Copy, Deref)]
 pub struct Mass(f32);
 
@@ -99,11 +102,11 @@ impl Plugin for ScalesPlugin {
             // .add_systems(PostUpdate, place_weights.after(TransformSystem::TransformPropagate))
             .add_systems(
                 Update,
-                (add_weights, remove_weights, update_scale_rot, scale_piles),
+                (add_weights, remove_weights, update_scale_rot, scale_piles, update_sus.run_if(resource_changed::<ScaleWeights>())),
             )
             .add_systems(
                 Update,
-                set_weight.run_if(resource_exists_and_changed::<ScaleContents>()),
+                (set_weight).run_if(resource_exists_and_changed::<ScaleContents>()),
             );
 
         let mut table_points = vec![];
@@ -434,6 +437,15 @@ fn scale_piles(
     for (mut tr, ty) in q.iter_mut() {
         let scale = *contents.get(ty).unwrap_or(&0.0);
         tr.scale = Vec3::splat(scale.powf(0.25));
+    }
+}
+
+fn update_sus(q: Query<&Visibility, (With<Sus>, With<OnScale>)>, mut cmd: Commands) {
+    let sus_count = q.iter().filter(|vis| **vis != Visibility::Hidden).count();
+    if sus_count > 0 {
+        cmd.init_resource::<ScaleIsSus>();
+    } else {
+        cmd.remove_resource::<ScaleIsSus>();
     }
 }
 

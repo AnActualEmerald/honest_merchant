@@ -1,7 +1,9 @@
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
 
-use crate::{assets::Fonts, game::GameState};
+use crate::assets::Fonts;
+
+use super::NeedsTextSet;
 
 #[derive(Event)]
 pub struct ShowTooltip(Entity, Vec2);
@@ -24,16 +26,16 @@ impl From<ListenerInput<Pointer<Out>>> for RemoveTooltip {
 #[derive(Bundle)]
 pub struct TooltipBundle {
     pub text: TooltipText,
-    pub over_listener: On<Pointer<Over>>,
-    pub out_listener: On<Pointer<Out>>
+    // pub over_listener: On<Pointer<Over>>,
+    // pub out_listener: On<Pointer<Out>>
 }
 
 impl TooltipBundle {
     pub fn new(text: impl Into<TooltipText>) -> Self {
         Self {
             text: text.into(),
-            over_listener: On::<Pointer<Over>>::send_event::<ShowTooltip>(),
-            out_listener: On::<Pointer<Out>>::send_event::<RemoveTooltip>(),
+            // over_listener: On::<Pointer<Over>>::send_event::<ShowTooltip>(),
+            // out_listener: On::<Pointer<Out>>::send_event::<RemoveTooltip>(),
         }
     }
 }
@@ -58,20 +60,20 @@ impl Plugin for TooltipPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<ShowTooltip>()
             .add_event::<RemoveTooltip>()
-            .add_systems(PreUpdate, update_tooltips)
-            .add_systems(Update, (show_tooltips, despawn_tooltips).run_if(resource_exists::<Fonts>()));
+            .add_systems(PreUpdate, update_tooltips.in_set(NeedsTextSet))
+            .add_systems(Update, (show_tooltips, despawn_tooltips).in_set(NeedsTextSet));
     }
 }
 
 fn update_tooltips(
     mut cmd: Commands,
-    mut tt_q: Query<(Entity, &mut Style, &mut Text, &Node, &Tooltip)>,
+    mut tt_q: Query<(Entity, &mut Style, &mut Visibility, &mut Text, &Node, &Tooltip)>,
     text_q: Query<&TooltipText>,
     window_q: Query<&Window>,
     mut er: EventReader<CursorMoved>,
 ) {
     for event in er.read() {
-        for (ent, mut style, mut text, node, tt) in tt_q.iter_mut() {
+        for (ent, mut style, mut vis, mut text, node, tt) in tt_q.iter_mut() {
             if let Ok(updated_text) = text_q.get(tt.target) {
                 let Ok(window) = window_q.get_single() else {
                     error!("Getting single window failed");
@@ -79,15 +81,15 @@ fn update_tooltips(
                 };
 
                 let size = node.size();
-                let mut x = event.position.x + 10.0;
-                let mut y = event.position.y + 10.0;
+                let mut x = event.position.x;
+                let mut y = event.position.y - size.y;
 
                 if x + size.x > window.width() {
-                    x -= size.x - 10.0;
+                    x -= size.x;
                 }
 
-                if y + size.y > window.height() {
-                    y -= size.y - 10.0;
+                if y < 0.0 {
+                    y += size.y;
                 }
 
 
@@ -95,6 +97,8 @@ fn update_tooltips(
                 style.top = Val::Px(y);
 
                 text.sections[0].value = updated_text.0.clone();
+
+                *vis = Visibility::Visible;
             } else {
                 cmd.entity(ent).despawn_recursive();
             }
@@ -102,30 +106,31 @@ fn update_tooltips(
     }
 }
 
-fn despawn_tooltips(mut cmd: Commands, mut er: EventReader<RemoveTooltip>, q: Query<(Entity, &Tooltip)>) {
+fn despawn_tooltips(mut cmd: Commands, mut er: EventReader<Pointer<Out>>, q: Query<(Entity, &Tooltip)>) {
     for event in er.read() {
-        if let Some((ent, _)) = q.iter().find(|(_, tt)| tt.target == event.0) {
+        if let Some((ent, _)) = q.iter().find(|(_, tt)| tt.target == event.target) {
             cmd.entity(ent).despawn_recursive();
         }
     }
 }
 
 fn show_tooltips(
-    mut er: EventReader<ShowTooltip>,
+    mut er: EventReader<Pointer<Over>>,
     mut cmd: Commands,
     q: Query<&TooltipText>,
     fonts: Res<Fonts>,
 ) {
     for event in er.read() {
-        if let Ok(text) = q.get(event.0) {
+        if let Ok(text) = q.get(event.target) {
             cmd.spawn((
                 TextBundle {
                     style: Style {
                         padding: UiRect::all(Val::Px(10.0)),
-                        top: Val::Px(event.1.y + 10.0),
-                        left: Val::Px(event.1.x + 10.0),
+                        top: Val::Px(event.pointer_location.position.y),
+                        left: Val::Px(event.pointer_location.position.x),
                         ..default()
                     },
+                    visibility: Visibility::Hidden,
                     background_color: Color::WHITE.into(),
                     text: Text::from_section(
                         text.0.clone(),
@@ -137,7 +142,8 @@ fn show_tooltips(
                     ),
                     ..default()
                 },
-                Tooltip { target: event.0 },
+                Tooltip { target: event.target },
+                Pickable::IGNORE,
             ));
         }
     }

@@ -93,73 +93,73 @@ fn spawn_player(mut cmd: Commands) {
     ));
 
     // UI stuff
-    cmd.spawn(NodeBundle {
-        style: Style {
-            position_type: PositionType::Absolute,
-            right: Val::Px(10.0),
-            bottom: Val::Px(10.0),
-            display: Display::Grid,
-            grid_template_columns: vec![GridTrack::auto(), GridTrack::fr(1.0)],
-            padding: UiRect::all(Val::Px(4.0)),
-            border: UiRect::all(Val::Px(2.0)),
-            ..default()
-        },
-        border_color: Color::BLACK.into(),
-        background_color: Color::rgb_u8(255, 87, 51).into(),
-        ..default()
-    })
-    .with_children(|parent| {
-        parent.spawn(TextBundle::from_section(
-            "Customer will pay: ",
-            TextStyle::default(),
-        ));
+    // cmd.spawn(NodeBundle {
+    //     style: Style {
+    //         position_type: PositionType::Absolute,
+    //         right: Val::Px(10.0),
+    //         bottom: Val::Px(10.0),
+    //         display: Display::Grid,
+    //         grid_template_columns: vec![GridTrack::auto(), GridTrack::fr(1.0)],
+    //         padding: UiRect::all(Val::Px(4.0)),
+    //         border: UiRect::all(Val::Px(2.0)),
+    //         ..default()
+    //     },
+    //     border_color: Color::BLACK.into(),
+    //     background_color: Color::rgb_u8(255, 87, 51).into(),
+    //     ..default()
+    // })
+    // .with_children(|parent| {
+    //     parent.spawn(TextBundle::from_section(
+    //         "Customer will pay: ",
+    //         TextStyle::default(),
+    //     ));
 
-        parent.spawn((
-            TextBundle {
-                style: Style {
-                    justify_self: JustifySelf::End,
-                    ..default()
-                },
-                text: Text::from_section("", TextStyle::default()),
-                ..default()
-            },
-            CustText,
-        ));
+    //     parent.spawn((
+    //         TextBundle {
+    //             style: Style {
+    //                 justify_self: JustifySelf::End,
+    //                 ..default()
+    //             },
+    //             text: Text::from_section("", TextStyle::default()),
+    //             ..default()
+    //         },
+    //         CustText,
+    //     ));
 
-        parent.spawn(TextBundle::from_section(
-            "Total cost: ",
-            TextStyle::default(),
-        ));
+    //     parent.spawn(TextBundle::from_section(
+    //         "Total cost: ",
+    //         TextStyle::default(),
+    //     ));
 
-        parent.spawn((
-            TextBundle {
-                style: Style {
-                    justify_self: JustifySelf::End,
-                    ..default()
-                },
-                text: Text::from_section("", TextStyle::default()),
-                ..default()
-            },
-            CostText,
-        ));
+    //     parent.spawn((
+    //         TextBundle {
+    //             style: Style {
+    //                 justify_self: JustifySelf::End,
+    //                 ..default()
+    //             },
+    //             text: Text::from_section("", TextStyle::default()),
+    //             ..default()
+    //         },
+    //         CostText,
+    //     ));
 
-        parent.spawn(TextBundle::from_section(
-            "Total profit: ",
-            TextStyle::default(),
-        ));
+    //     parent.spawn(TextBundle::from_section(
+    //         "Total profit: ",
+    //         TextStyle::default(),
+    //     ));
 
-        parent.spawn((
-            TextBundle {
-                style: Style {
-                    justify_self: JustifySelf::End,
-                    ..default()
-                },
-                text: Text::from_section("", TextStyle::default()),
-                ..default()
-            },
-            ProfitText,
-        ));
-    });
+    //     parent.spawn((
+    //         TextBundle {
+    //             style: Style {
+    //                 justify_self: JustifySelf::End,
+    //                 ..default()
+    //             },
+    //             text: Text::from_section("", TextStyle::default()),
+    //             ..default()
+    //         },
+    //         ProfitText,
+    //     ));
+    // });
 }
 
 fn look(mut q: Query<(&mut Transform, &LookTarget), (With<Player>, Changed<LookTarget>)>) {

@@ -10,6 +10,9 @@
     request: [({
         SpiderEyes: 10.0,
     })],
-    attention_type: Distracted,
-    max_gold: 100
+    attention_type: (
+        get_distracted: (1, 4),
+        get_focused: (1, 2),
+        threshold: 0.5,
+    ),
 )

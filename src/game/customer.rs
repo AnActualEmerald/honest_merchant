@@ -11,13 +11,13 @@ use crate::{
     utils::{
         despawn_all,
         text_box::{SpawnTextBox, TextBox},
-        CalcCost, PercentDiff, Ratios,
+        CalcCost, PercentDiff, Ratios, Total,
     },
 };
 
 use super::{
-    scales::{self, ScaleContents, ScaleWeights, Submit, SusEvent},
-    Advance, DailyExpenses, DailyGold, GameState, TargetWeight, AvailableCustomers,
+    scales::{self, ScaleContents, ScaleWeights, Submit, SusEvent, ScaleIsSus},
+    Advance, AvailableCustomers, DailyExpenses, DailyGold, GameState, TargetWeight,
 };
 
 #[allow(dead_code)]
@@ -50,21 +50,14 @@ impl AttentionState {
     }
 }
 
+
+
 #[derive(Component, Clone, Copy, Debug)]
 #[component(storage = "SparseSet")]
 pub struct WillChange;
 
 #[derive(Component)]
 pub struct Customer(Handle<CharacterTraits>);
-
-// don't let SBF near this
-#[cfg(not(target_family = "wasm"))]
-#[derive(Resource)]
-pub struct CustomerAssets(Handle<LoadedFolder>);
-
-#[cfg(target_family = "wasm")]
-#[derive(Resource)]
-pub struct CustomerAssets(Vec<Handle<CharacterTraits>>);
 
 pub const CUSTOMER_STAND_POINT: Vec3 = Vec3::new(0.0, 0.0, -3.0);
 
@@ -75,21 +68,6 @@ impl Plugin for CustomerPlugin {
         app.add_state::<CustomerState>()
             .add_state::<AttentionState>()
             .init_resource::<TargetWeight>()
-            .add_systems(Startup, |mut cmd: Commands, ass: Res<AssetServer>| {
-                // preload (or try to preload) all the customer character files
-                #[cfg(not(target_family = "wasm"))]
-                cmd.insert_resource(CustomerAssets(ass.load_folder("customers")));
-
-                // this is stupid but I get it
-                #[cfg(target_family = "wasm")]
-                {
-                    let mut res = vec![];
-                    for c in ["dumb"] {
-                        res.push(ass.load(format!("customers/{c}.chr.ron")));
-                    }
-                    cmd.insert_resource(CustomerAssets(res));
-                }
-            })
             .add_systems(
                 Update,
                 (
@@ -142,7 +120,12 @@ fn spawn_customer(
             transform: Transform::from_translation(CUSTOMER_STAND_POINT + Vec3::new(0.0, 1.0, 0.0)),
             ..default()
         },
-        Customer(available.choose(&mut rng).expect("No available customer types").clone()),
+        Customer(
+            available
+                .choose(&mut rng)
+                .expect("No available customer types")
+                .clone(),
+        ),
     ));
 
     state.set(CustomerState::Greeting);
@@ -183,7 +166,7 @@ fn get_distracted(
             state.set(current_state.get().other());
             *will_change = false;
             cmd.entity(ent).remove::<WillChange>();
-            *lockout = Timer::new(Duration::from_millis(3000), TimerMode::Once);
+            *lockout = Timer::new(Duration::from_millis(1000), TimerMode::Once);
         }
     }
 }
@@ -191,6 +174,7 @@ fn get_distracted(
 fn handle_attention(
     mut state: ResMut<NextState<CustomerState>>,
     mut events: EventReader<SusEvent>,
+
 ) {
     for _e in events.read() {
         state.set(CustomerState::Angry);
@@ -281,6 +265,7 @@ fn pay(
 }
 
 fn handle_review(
+    is_sus: Option<Res<ScaleIsSus>>,
     scale_weights: Res<ScaleWeights>,
     contents: Res<ScaleContents>,
     target: Res<TargetWeight>,
@@ -299,7 +284,10 @@ fn handle_review(
             let cust = q.get_single().expect("No customer?");
             let traits = chars.get(&cust.0).expect("Unable to get traits");
             // customers can tell when the amount isn't correct
-            if traits.attention_type.sus_threshold() < target.diff(&**contents) {
+            if traits.attention_type.sus_threshold() < target.diff(&**contents)
+            // don't let customers be fooled without using the sus weights
+                || ((target.total() != contents.total()) && is_sus.is_none())
+            {
                 state.set(CustomerState::Angry);
             } else if scale_weights.is_even() && target.ratio() == contents.ratio() {
                 state.set(CustomerState::Payment);

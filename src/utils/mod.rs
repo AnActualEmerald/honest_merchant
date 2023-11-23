@@ -9,7 +9,7 @@ use bevy::{prelude::*, utils::HashMap};
 use bevy_tweening::*;
 
 use crate::{
-    game::{Advance, ItemType, ITEM_COST, GameState},
+    game::{Advance, ItemType, ITEM_COST},
     input::Action, assets::Fonts,
 };
 

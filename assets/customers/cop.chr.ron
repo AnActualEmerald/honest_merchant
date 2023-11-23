@@ -10,6 +10,9 @@
     request: [({
         Berries: 2.0,
     })],
-    attention_type: Alert,
-    max_gold: 100
+    attention_type: (
+        get_distracted: (1, 500),
+        get_focused: (3, 4),
+        threshold: 0.1,
+    ),
 )

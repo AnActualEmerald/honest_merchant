@@ -9,7 +9,7 @@ use bevy_tweening::{
 use serde::Deserialize;
 use strum::{EnumCount, FromRepr};
 
-use crate::utils::Offset;
+use crate::{utils::Offset, ui::tooltips::TooltipBundle};
 
 use super::scales::ScaleContents;
 
@@ -142,6 +142,7 @@ fn spawn_goods(
         On::<Pointer<Over>>::send_event::<Open>(),
         On::<Pointer<Out>>::send_event::<Close>(),
         Offset::default(),
+        TooltipBundle::new("Spider Eyes")
     ));
 
     cmd.spawn((
@@ -156,6 +157,7 @@ fn spawn_goods(
         On::<Pointer<Over>>::send_event::<Open>(),
         On::<Pointer<Out>>::send_event::<Close>(),
         Offset::new(0.3, 0.0, 0.0),
+        TooltipBundle::new("Berries")
     ));
 
     cmd.spawn((
@@ -170,6 +172,7 @@ fn spawn_goods(
         On::<Pointer<Over>>::send_event::<Open>(),
         On::<Pointer<Out>>::send_event::<Close>(),
         Offset::new(0.6, 0.0, 0.0),
+        TooltipBundle::new("Green Mush")
     ));
     cmd.spawn((
         PbrBundle {
@@ -183,6 +186,7 @@ fn spawn_goods(
         On::<Pointer<Over>>::send_event::<Open>(),
         On::<Pointer<Out>>::send_event::<Close>(),
         Offset::new(0.9, 0.0, 0.0),
+        TooltipBundle::new("Vibrant Syrup")
     ));
 }
 

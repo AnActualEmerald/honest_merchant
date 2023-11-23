@@ -17,5 +17,9 @@
         GreenMush: 10.0,
     })
     ],
-    attention_type: Attentive,
+    attention_type: (
+        get_distracted: (2, 50),
+        get_focused: (1, 2),
+        threshold: 0.3,
+    ),
 )

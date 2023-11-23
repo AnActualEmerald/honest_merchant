@@ -5,11 +5,7 @@ use serde::Deserialize;
 use crate::assets::CharacterTraits;
 use crate::assets::Characters;
 
-use self::{
-    customer::CustomerPlugin,
-    goods::GoodsPlugin,
-    scales::ScalesPlugin,
-};
+use self::{customer::CustomerPlugin, goods::GoodsPlugin, scales::ScalesPlugin};
 
 mod customer;
 mod goods;
@@ -25,6 +21,9 @@ pub struct TotalGold(f32);
 
 #[derive(Resource, Default, Deref, DerefMut, Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct DailyGold(f32);
+
+#[derive(Resource, Default, Deref, DerefMut, Debug, Clone, Copy, PartialEq, PartialOrd)]
+pub struct TotalExpenses(f32);
 
 #[derive(Resource, Default, Deref, DerefMut, Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct DailyExpenses(f32);
@@ -91,55 +90,38 @@ impl std::fmt::Display for ItemRequest {
 }
 
 #[derive(Debug, Deserialize, Clone, Copy)]
-pub enum AttentionType {
-    Distracted,
-    Normal,
-    Attentive,
-    Alert,
+pub struct AttentionType {
+    pub get_distracted: (u32, u32),
+    pub get_focused: (u32, u32),
+    pub threshold: f32,
+
 }
 
 impl AttentionType {
     /// Returns the odds of becoming distracted and undistracted resepectively
     fn weights(&self) -> [(u32, u32); 2] {
-        match self {
-            Self::Alert => [(1, 100), (3, 4)],
-            Self::Attentive => [(2, 50), (1, 2)],
-            Self::Distracted => [(80, 90), (1, 500)],
-            Self::Normal => [(1, 2), (1, 2)],
-        }
+        [self.get_distracted, self.get_focused]
     }
 
     /// Returns the percentage the amount has to be wrong for the customer to notice
     fn sus_threshold(&self) -> f32 {
-        match self {
-            Self::Alert => 0.1,
-            Self::Attentive => 0.3,
-            Self::Distracted => 0.7,
-            Self::Normal => 0.5,
-        }
+        self.threshold
     }
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Clone, Copy, States, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, States, PartialEq, Eq, Hash, Default)]
 pub enum GameState {
     MainMenu,
+    #[default]
     Loading,
     Waiting,
     DayStart,
     DayEnd,
     Customer,
     Dialogue,
+    GameOver,
 }
-
-impl Default for GameState {
-    fn default() -> Self {
-        info!("Init GameState");
-        Self::Loading
-    }
-}
-
-
 
 #[derive(Resource, Debug, Clone, Deref, DerefMut)]
 pub struct DayTimer(Timer);
@@ -154,6 +136,7 @@ pub struct DayIndex(usize);
 pub struct AvailableCustomers(Vec<Handle<CharacterTraits>>);
 
 pub const DAY_LEN: f32 = 90.0;
+pub const WEEK_LEN: usize = 5;
 
 pub struct GamePlugin;
 
@@ -163,6 +146,7 @@ impl Plugin for GamePlugin {
             .init_resource::<TotalGold>()
             .init_resource::<DailyGold>()
             .init_resource::<DailyExpenses>()
+            .init_resource::<TotalExpenses>()
             .init_resource::<DayIndex>()
             .init_resource::<AvailableCustomers>()
             .add_state::<GameState>()
@@ -171,20 +155,38 @@ impl Plugin for GamePlugin {
             .insert_resource(DayTimer(Timer::from_seconds(DAY_LEN, TimerMode::Once)))
             .add_systems(
                 Update,
-                wait_for_customer.run_if(resource_exists::<CustomerTimer>().and_then(in_state(GameState::Waiting))),
+                wait_for_customer.run_if(
+                    resource_exists::<CustomerTimer>().and_then(in_state(GameState::Waiting)),
+                ),
             )
-            .add_systems(OnEnter(CustomerState::End), customer_end.run_if(in_state(GameState::Customer)))
+            .add_systems(OnEnter(GameState::DayEnd), accounting)
+            .add_systems(OnEnter(GameState::GameOver), accounting)
+            .add_systems(
+                OnEnter(CustomerState::End),
+                customer_end.run_if(in_state(GameState::Customer)),
+            )
             .add_systems(
                 Update,
-                (
-                    tick_day,
-                    finish_day.run_if(in_state(GameState::Waiting)),
-                ),
-            ).add_systems(OnEnter(GameState::DayStart), (start_day, customer_end));
+                (tick_day, finish_day.run_if(in_state(GameState::Waiting))),
+            )
+            .add_systems(OnEnter(GameState::DayStart), (start_day, customer_end));
     }
 }
 
-fn start_day(mut gold: ResMut<DailyGold>, mut expenses: ResMut<DailyExpenses>, mut state: ResMut<NextState<GameState>>, mut timer: ResMut<DayTimer>, mut available: ResMut<AvailableCustomers>, day: Res<DayIndex>, customers: Res<Characters>) {
+fn accounting(mut total_g: ResMut<TotalGold>, mut total_e: ResMut<TotalExpenses>, daily_g: Res<DailyGold>, daily_e: Res<DailyExpenses>) {
+    **total_g += **daily_g;
+    **total_e += **daily_e;
+}
+
+fn start_day(
+    mut gold: ResMut<DailyGold>,
+    mut expenses: ResMut<DailyExpenses>,
+    mut state: ResMut<NextState<GameState>>,
+    mut timer: ResMut<DayTimer>,
+    mut available: ResMut<AvailableCustomers>,
+    day: Res<DayIndex>,
+    customers: Res<Characters>,
+) {
     **gold = 0.0;
     **expenses = 0.0;
     timer.reset();
@@ -193,9 +195,13 @@ fn start_day(mut gold: ResMut<DailyGold>, mut expenses: ResMut<DailyExpenses>, m
         0 => AvailableCustomers(vec![customers.dumb.clone()]),
         1 => AvailableCustomers(vec![customers.dumb.clone(), customers.normal.clone()]),
         2 => AvailableCustomers(vec![customers.normal.clone(), customers.attentive.clone()]),
-        3 => AvailableCustomers(vec![customers.normal.clone(), customers.attentive.clone(), customers.cop.clone()]),
+        3 => AvailableCustomers(vec![
+            customers.normal.clone(),
+            customers.attentive.clone(),
+            customers.cop.clone(),
+        ]),
         4 => AvailableCustomers(vec![customers.attentive.clone(), customers.cop.clone()]),
-        _ => AvailableCustomers::default()
+        _ => AvailableCustomers::default(),
     };
 
     state.set(GameState::Waiting);
@@ -204,11 +210,15 @@ fn start_day(mut gold: ResMut<DailyGold>, mut expenses: ResMut<DailyExpenses>, m
 fn finish_day(
     timer: Res<DayTimer>,
     mut state: ResMut<NextState<GameState>>,
-    mut day: ResMut<DayIndex>
+    mut day: ResMut<DayIndex>,
 ) {
     if timer.finished() {
-        state.set(GameState::DayEnd);
         **day += 1;
+        if **day >= WEEK_LEN {
+            state.set(GameState::GameOver);
+        } else {
+            state.set(GameState::DayEnd);
+        }
     }
 }
 
@@ -216,10 +226,7 @@ fn tick_day(mut timer: ResMut<DayTimer>, time: Res<Time>) {
     timer.tick(time.delta());
 }
 
-fn customer_end(
-    mut timer: ResMut<CustomerTimer>,
-    mut state: ResMut<NextState<GameState>>,
-) {
+fn customer_end(mut timer: ResMut<CustomerTimer>, mut state: ResMut<NextState<GameState>>) {
     state.set(GameState::Waiting);
     let mut rng = SmallRng::from_entropy();
     *timer = CustomerTimer(Timer::from_seconds(

@@ -13,6 +13,7 @@ pub struct CursorPos(Vec2);
 #[derive(Actionlike, TypePath, Clone, Copy)]
 pub enum Action {
     Advance,
+    Mod,
 }
 
 pub struct InputPlugin;
@@ -24,6 +25,7 @@ impl Plugin for InputPlugin {
             .insert_resource(InputMap::new([
                 (InputKind::Keyboard(KeyCode::Space), Action::Advance),
                 (InputKind::Mouse(MouseButton::Left), Action::Advance),
+                (InputKind::Keyboard(KeyCode::ShiftLeft), Action::Mod),
             ]))
             .add_plugins(InputManagerPlugin::<Action>::default())
             .add_systems(PreUpdate, update_cursor_pos);

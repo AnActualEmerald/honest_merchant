@@ -19,5 +19,9 @@
             SpiderEyes: 3.0,
         })
     ],
-    attention_type: Distracted,
+    attention_type: (
+        get_distracted: (80, 90),
+        get_focused: (1, 500),
+        threshold: 0.7
+    ),
 )
