@@ -6,10 +6,11 @@ use bevy_tweening::{
     lens::{TransformPositionLens, TransformRotateXLens},
     *,
 };
+use leafwing_input_manager::action_state::ActionState;
 use serde::Deserialize;
 use strum::{EnumCount, FromRepr};
 
-use crate::{utils::Offset, ui::tooltips::TooltipBundle};
+use crate::{utils::Offset, ui::tooltips::TooltipBundle, input::Action};
 
 use super::scales::ScaleContents;
 
@@ -194,14 +195,17 @@ fn handle_add(
     mut er: EventReader<AddItem>,
     q: Query<&ItemType>,
     mut contents: ResMut<ScaleContents>,
+    actions: Res<ActionState<Action>>,
 ) {
     for event in er.read() {
         let Ok(t) = q.get(event.0) else { continue };
 
+        let amnt = if actions.pressed(Action::Mod) { 0.5 } else { 1.0 };
+
         if let Some(val) = contents.get_mut(t) {
-            *val += 1.0;
+            *val += amnt;
         } else {
-            contents.insert(*t, 1.0);
+            contents.insert(*t, amnt);
         }
     }
 }
@@ -210,13 +214,16 @@ fn handle_remove(
     mut er: EventReader<RemoveItem>,
     q: Query<&ItemType>,
     mut contents: ResMut<ScaleContents>,
+    actions: Res<ActionState<Action>>,
 ) {
     for event in er.read() {
         let Ok(t) = q.get(event.0) else { continue };
 
+        let amnt = if actions.pressed(Action::Mod) { 0.5 } else { 1.0 };
+
         if let Some(val) = contents.get_mut(t) {
-            *val -= 1.0;
-            *val = val.max(0.0);
+            *val -= amnt;
+            // *val = val.max(0.0);
         } else {
             continue;
         }

@@ -4,7 +4,7 @@ use bevy::{prelude::*, utils::HashMap};
 use bevy_mod_picking::prelude::*;
 use bevy_tweening::{lens::TransformRotationLens, *};
 
-use crate::ui::tooltips::TooltipBundle;
+use crate::ui::tooltips::{TooltipBundle, TooltipText};
 
 use super::goods::{ItemType, RemoveItem, ITEM_COLORS};
 
@@ -273,6 +273,7 @@ fn setup_scales(
                 },
                 t,
                 OnScale,
+                TooltipBundle::new("0 grams"),
                 On::<Pointer<Down>>::send_event::<RemoveItem>(),
             ));
         }
@@ -431,12 +432,13 @@ fn set_weight(mut scale_weights: ResMut<ScaleWeights>, contents: Res<ScaleConten
 }
 
 fn scale_piles(
-    mut q: Query<(&mut Transform, &ItemType), With<OnScale>>,
+    mut q: Query<(&mut Transform, &mut TooltipText, &ItemType), With<OnScale>>,
     contents: Res<ScaleContents>,
 ) {
-    for (mut tr, ty) in q.iter_mut() {
+    for (mut tr, mut txt, ty) in q.iter_mut() {
         let scale = *contents.get(ty).unwrap_or(&0.0);
         tr.scale = Vec3::splat(scale.powf(0.25));
+        txt.0 = format!("{scale} grams");
     }
 }
 

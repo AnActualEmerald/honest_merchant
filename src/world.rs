@@ -1,21 +1,23 @@
 use bevy::{pbr::CascadeShadowConfigBuilder, prelude::*};
 
+use crate::{game::GameState, assets::Meshes};
+
 pub struct WorldPlugin;
 
 impl Plugin for WorldPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, spawn_world);
+        app.add_systems(OnExit(GameState::Loading), spawn_world);
     }
 }
 
 fn spawn_world(
     mut cmd: Commands,
-    ass: Res<AssetServer>,
+    meshes: Res<Meshes>,
     // mut meshes: ResMut<Assets<Mesh>>,
     // mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     cmd.spawn(SceneBundle {
-        scene: ass.load("stand.gltf#Scene0"),
+        scene: meshes.stand.clone(),
         ..default()
     });
     // cmd.spawn(PbrBundle {

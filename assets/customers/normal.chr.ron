@@ -1,5 +1,11 @@
 (
     name: "normal",
+    color: Rgba(
+        red: 1.0,
+        green: 0.0,
+        blue: 0.0,
+        alpha: 1.0
+    ),
     greeting: [
         "Wonderful weather we're having",
     ],
@@ -15,4 +21,5 @@
         get_focused: (1, 2),
         threshold: 0.5,
     ),
+    rep_hit: 5,
 )

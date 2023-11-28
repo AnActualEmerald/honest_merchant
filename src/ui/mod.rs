@@ -1,12 +1,16 @@
+//! abondon hope, all ye who enter here
+
 use bevy::prelude::*;
 
 use crate::assets::Fonts;
 
-use self::{day_end_menu::DayEndPlugin, tooltips::TooltipPlugin, player_ui::PlayerUiPlugin};
+use self::{day_end_menu::DayEndPlugin, tooltips::TooltipPlugin, player_ui::PlayerUiPlugin, main_menu::MainMenuPlugin, game_end_menu::GameEndMenuPlugin};
 
 mod day_end_menu;
 mod player_ui;
 mod game_over;
+mod main_menu;
+mod game_end_menu;
 pub mod tooltips;
 
 #[derive(States, Debug, Hash, PartialEq, Eq, Clone, Copy, Default)]
@@ -28,7 +32,7 @@ impl Plugin for UiPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_state::<MenuState>()
-            .add_plugins((DayEndPlugin, TooltipPlugin, PlayerUiPlugin));
+            .add_plugins((DayEndPlugin, TooltipPlugin, PlayerUiPlugin, MainMenuPlugin, GameEndMenuPlugin));
 
         app.configure_sets(Update, NeedsTextSet.run_if(resource_exists::<Fonts>()));
     }

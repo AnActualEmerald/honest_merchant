@@ -1,5 +1,11 @@
 (
     name: "dumb",
+    color: Rgba(
+        red: 1.0,
+        green: 1.0,
+        blue: 0.0,
+        alpha: 1.0
+    ),
     greeting: [
         "Howdy!",
     ],
@@ -24,4 +30,5 @@
         get_focused: (1, 500),
         threshold: 0.7
     ),
+    rep_hit: 1,
 )

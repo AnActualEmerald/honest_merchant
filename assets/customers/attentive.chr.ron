@@ -1,5 +1,11 @@
 (
     name: "attentive",
+    color: Rgba(
+        red: 0.0,
+        green: 1.0,
+        blue: 0.0,
+        alpha: 1.0
+    ),
     greeting: [
         "Hello. I would like to purchase some of your goods.",
     ],
@@ -22,4 +28,5 @@
         get_focused: (1, 2),
         threshold: 0.3,
     ),
+    rep_hit: 20,
 )

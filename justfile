@@ -8,5 +8,8 @@ build-web:
 release-web:
     trunk build --release
 
+release-web-run: release-web
+    sirv -Dq dist
+
 dev:
     cargo run

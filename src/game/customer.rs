@@ -1,9 +1,6 @@
 use std::time::Duration;
 
 use bevy::prelude::*;
-
-#[cfg(not(target_family = "wasm"))]
-use bevy::asset::LoadedFolder;
 use rand::prelude::*;
 
 use crate::{
@@ -16,8 +13,8 @@ use crate::{
 };
 
 use super::{
-    scales::{self, ScaleContents, ScaleWeights, Submit, SusEvent, ScaleIsSus},
-    Advance, AvailableCustomers, DailyExpenses, DailyGold, GameState, TargetWeight,
+    scales::{self, ScaleContents, ScaleIsSus, ScaleWeights, Submit, SusEvent},
+    Advance, AvailableCustomers, DailyExpenses, DailyGold, GameState, Reputation, TargetWeight,
 };
 
 #[allow(dead_code)]
@@ -49,8 +46,6 @@ impl AttentionState {
         }
     }
 }
-
-
 
 #[derive(Component, Clone, Copy, Debug)]
 #[component(storage = "SparseSet")]
@@ -91,6 +86,7 @@ impl Plugin for CustomerPlugin {
                 OnEnter(CustomerState::End),
                 (despawn_all::<Customer>, cleanup, scales::reset),
             )
+            .add_systems(OnEnter(CustomerState::Angry), angery)
             .add_systems(OnEnter(GameState::Customer), spawn_customer);
     }
 }
@@ -106,9 +102,19 @@ fn spawn_customer(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut state: ResMut<NextState<CustomerState>>,
+    chars: Res<Assets<CharacterTraits>>,
     available: Res<AvailableCustomers>,
 ) {
     let mut rng = SmallRng::from_entropy();
+    let char = available
+        .choose(&mut rng)
+        .expect("No available customer types")
+        .clone();
+    let color = chars
+        .get(char.clone())
+        .map(|v| v.color)
+        .unwrap_or(Color::rgb(1.0, 0.0, 1.0));
+
     cmd.spawn((
         PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Capsule {
@@ -116,16 +122,11 @@ fn spawn_customer(
                 depth: 2.0,
                 ..default()
             })),
-            material: materials.add(Color::INDIGO.into()),
+            material: materials.add(color.into()),
             transform: Transform::from_translation(CUSTOMER_STAND_POINT + Vec3::new(0.0, 1.0, 0.0)),
             ..default()
         },
-        Customer(
-            available
-                .choose(&mut rng)
-                .expect("No available customer types")
-                .clone(),
-        ),
+        Customer(char),
     ));
 
     state.set(CustomerState::Greeting);
@@ -174,7 +175,6 @@ fn get_distracted(
 fn handle_attention(
     mut state: ResMut<NextState<CustomerState>>,
     mut events: EventReader<SusEvent>,
-
 ) {
     for _e in events.read() {
         state.set(CustomerState::Angry);
@@ -255,6 +255,9 @@ fn wait_to_advance(
 }
 
 fn pay(
+    mut rep: ResMut<Reputation>,
+    cust_q: Query<&Customer>,
+    chars: Res<Assets<CharacterTraits>>,
     mut gold: ResMut<DailyGold>,
     mut expenses: ResMut<DailyExpenses>,
     target: Res<TargetWeight>,
@@ -262,6 +265,23 @@ fn pay(
 ) {
     **gold += target.customer_cost();
     **expenses += contents.cost();
+    for cust in cust_q.iter() {
+        if let Some(t) = chars.get(&cust.0) {
+            **rep = (**rep + t.rep_hit).clamp(0, 100);
+        }
+    }
+}
+
+fn angery(
+    mut rep: ResMut<Reputation>,
+    cust_q: Query<&Customer>,
+    chars: Res<Assets<CharacterTraits>>,
+) {
+    for cust in cust_q.iter() {
+        if let Some(t) = chars.get(&cust.0) {
+            **rep = rep.saturating_sub(t.rep_hit);
+        }
+    }
 }
 
 fn handle_review(

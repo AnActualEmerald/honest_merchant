@@ -6,7 +6,22 @@ use bevy_asset_loader::prelude::*;
 use serde::Deserialize;
 use thiserror::Error;
 
-use crate::game::{AttentionType, GameState, ItemRequest};
+use crate::{
+    game::{AttentionType, GameState, ItemRequest},
+    AppState,
+};
+
+#[derive(AssetCollection, Resource)]
+pub struct Meshes {
+    #[asset(path = "stand.gltf")]
+    pub stand: Handle<Scene>
+}
+
+#[derive(AssetCollection, Resource)]
+pub struct Images {
+    #[asset(path = "example.png")]
+    pub example: Handle<Image>
+}
 
 #[derive(AssetCollection, Resource)]
 pub struct Fonts {
@@ -28,16 +43,26 @@ pub struct Characters {
     pub cop: Handle<CharacterTraits>,
 }
 
+#[derive(AssetCollection, Resource)]
+pub struct Splash {
+    #[asset(path = "fonts/Inconsolata-Medium.ttf")]
+    pub font: Handle<Font>,
+}
+
 pub struct AssetPlugin;
 
 impl Plugin for AssetPlugin {
     fn build(&self, app: &mut App) {
         app.init_asset::<CharacterTraits>()
             .init_asset_loader::<CharacteristicsLoader>()
+            .add_loading_state(LoadingState::new(AppState::Load).continue_to_state(AppState::Done))
+            .add_collection_to_loading_state::<_, Splash>(AppState::Load)
             .add_loading_state(
-                LoadingState::new(GameState::Loading).continue_to_state(GameState::DayStart),
+                LoadingState::new(GameState::Loading).continue_to_state(GameState::MainMenu),
             )
             .add_collection_to_loading_state::<_, Fonts>(GameState::Loading)
+            .add_collection_to_loading_state::<_, Meshes>(GameState::Loading)
+            .add_collection_to_loading_state::<_, Images>(GameState::Loading)
             .add_collection_to_loading_state::<_, Characters>(GameState::Loading);
     }
 }
@@ -55,6 +80,7 @@ pub enum LoaderError {
 #[derive(Asset, TypePath, Debug, Deserialize, Clone)]
 pub struct CharacterTraits {
     pub name: String,
+    pub color: Color,
     pub greeting: Vec<String>,
     pub thinking: String,
     pub accept: String,
@@ -62,6 +88,7 @@ pub struct CharacterTraits {
     pub accuse: String,
     pub request: Vec<ItemRequest>,
     pub attention_type: AttentionType,
+    pub rep_hit: u8,
 }
 
 #[derive(Default)]
@@ -84,6 +111,7 @@ impl AssetLoader for CharacteristicsLoader {
             let mut raw = Vec::new();
             reader.read_to_end(&mut raw).await?;
             let parsed = ron::de::from_bytes(&raw)?;
+            info!("{parsed:?}");
             Ok(parsed)
         })
     }

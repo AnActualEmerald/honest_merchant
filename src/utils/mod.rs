@@ -56,6 +56,19 @@ fn step_text(
     }
 }
 
+pub fn every(duration: Duration) -> impl FnMut(Local<Duration>, Res<Time>) -> bool {
+    move |mut elapsed, time| {
+        *elapsed += time.delta();
+
+        if *elapsed >= duration {
+            *elapsed = Duration::default();
+            true
+        }else {
+            false
+        }
+    }
+}
+
 fn initial_offset(mut q: Query<(&mut Transform, &Offset)>) {
     for (mut tr, off) in q.iter_mut() {
         tr.translation += **off;
