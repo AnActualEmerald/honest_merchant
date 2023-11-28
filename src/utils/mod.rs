@@ -9,11 +9,15 @@ use bevy::{prelude::*, utils::HashMap};
 use bevy_tweening::*;
 
 use crate::{
+    assets::Fonts,
     game::{Advance, ItemType, ITEM_COST},
-    input::Action, assets::Fonts,
+    input::Action,
 };
 
-use self::text_box::{spawn_text_box, SpawnTextBox, TimedText};
+use self::{
+    lenses::TextLens,
+    text_box::{spawn_text_box, SpawnTextBox, TimedText},
+};
 
 pub struct UtilPlugin;
 
@@ -29,7 +33,15 @@ impl Plugin for UtilPlugin {
                         .in_set(AnimationSystem::AnimationUpdate),
                 ),
             )
-            .add_systems(Update, (send_entity_events, spawn_text_box, step_text.after(spawn_text_box)).run_if(resource_exists::<Fonts>()))
+            .add_systems(
+                Update,
+                (
+                    send_entity_events,
+                    spawn_text_box,
+                    step_text.after(spawn_text_box),
+                )
+                    .run_if(resource_exists::<Fonts>()),
+            )
             .add_systems(PostStartup, initial_offset);
     }
 }
@@ -63,7 +75,7 @@ pub fn every(duration: Duration) -> impl FnMut(Local<Duration>, Res<Time>) -> bo
         if *elapsed >= duration {
             *elapsed = Duration::default();
             true
-        }else {
+        } else {
             false
         }
     }
@@ -81,15 +93,57 @@ pub fn despawn_all<T: Component>(mut cmd: Commands, q: Query<Entity, With<T>>) {
     }
 }
 
-pub fn send_entity_events(mut events: EventWriter<TweenDone>, mut reader: EventReader<TweenCompleted>) {
+pub fn send_entity_events(
+    mut events: EventWriter<TweenDone>,
+    mut reader: EventReader<TweenCompleted>,
+) {
     events.send_batch(reader.read().map(|e| e.into()));
+}
+
+#[derive(Bundle)]
+pub struct AnimatedTextBundle {
+    animation: Animator<Text>,
+    text: TextBundle,
+}
+
+impl AnimatedTextBundle {
+    pub fn from_seciton(text: impl Into<String>, style: TextStyle) -> Self {
+        let text = text.into();
+        Self {
+            text: TextBundle::from_section("", style),
+            animation: Tween::new(
+                EaseMethod::Linear,
+                Duration::from_micros(text.len() as u64 * 100),
+                TextLens::new(text),
+            )
+            .animator(),
+        }
+    }
+
+    pub fn from_seciton_with_delay(
+        text: impl Into<String>,
+        style: TextStyle,
+        delay_ms: u64,
+    ) -> Self {
+        let text = text.into();
+        Self {
+            text: TextBundle::from_section("", style),
+            animation: Tween::new(
+                EaseMethod::Linear,
+                Duration::from_millis(text.len() as u64 * 30),
+                TextLens::new(text),
+            )
+            .with_delay(Duration::from_millis(delay_ms))
+            .animator(),
+        }
+    }
 }
 
 #[derive(Event, EntityEvent, Debug, Clone)]
 pub struct TweenDone {
     #[target]
     pub target: Entity,
-    pub id: u64
+    pub id: u64,
 }
 
 impl From<TweenCompleted> for TweenDone {
@@ -200,8 +254,18 @@ pub trait Delayable<T> {
     fn with_delay(self, duration: Duration) -> Sequence<T>;
 }
 
-impl<T: 'static> Delayable<T> for Tween<T> {
+impl<T: 'static, U: Tweenable<T> + 'static> Delayable<T> for U {
     fn with_delay(self, duration: Duration) -> Sequence<T> {
         Delay::new(duration).then(self)
+    }
+}
+
+pub trait IntoAnimator<T: Component> {
+    fn animator(self) -> Animator<T>;
+}
+
+impl<T: Component + 'static, U: Tweenable<T> + 'static> IntoAnimator<T> for U {
+    fn animator(self) -> Animator<T> {
+        Animator::new(self)
     }
 }

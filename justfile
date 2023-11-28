@@ -12,4 +12,4 @@ release-web-run: release-web
     sirv -Dq dist
 
 dev:
-    cargo run
+    cargo watch -x run

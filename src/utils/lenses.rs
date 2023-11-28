@@ -19,20 +19,28 @@ impl Lens<BackgroundColor> for BackgroundColorLens {
 #[derive(Debug, Clone)]
 pub struct TextLens {
     pub text: String,
-    pub section: usize
+    pub section: usize,
 }
 
 impl TextLens {
     pub fn new(text: impl Into<String>) -> Self {
         Self {
             text: text.into(),
-            section: 0
+            section: 0,
+        }
+    }
+
+    pub fn with_section(self, section: usize) -> Self {
+        Self {
+            text: self.text,
+            section,
         }
     }
 }
 
 impl Lens<Text> for TextLens {
     fn lerp(&mut self, target: &mut Text, ratio: f32) {
-        target.sections[self.section].value = self.text[0..(self.text.len() as f32 * ratio).floor() as usize].to_string();
+        target.sections[self.section].value =
+            self.text[0..(self.text.len() as f32 * ratio).floor() as usize].to_string();
     }
 }

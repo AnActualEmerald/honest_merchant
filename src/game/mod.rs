@@ -1,3 +1,5 @@
+use std::ops::RangeInclusive;
+
 use bevy::{prelude::*, utils::HashMap};
 use rand::prelude::*;
 use serde::Deserialize;
@@ -122,6 +124,7 @@ pub enum GameState {
     Dialogue,
     GameOver,
     Error,
+    Reset,
 }
 
 #[derive(Resource, Debug, Clone, Deref, DerefMut)]
@@ -139,8 +142,19 @@ pub struct AvailableCustomers(Vec<Handle<CharacterTraits>>);
 #[derive(Resource, Debug, Clone, Deref, DerefMut, Default)]
 pub struct Reputation(u8);
 
+impl Reputation {
+    pub const fn sentiment(&self) -> &'static str {
+        match self.0 {
+            0..=10 => "angry",
+            11..=25 => "suspicious",
+            26..=50 => "ambivilent",
+            _ => "supportive",
+        }
+    }
+}
+
 pub const DAY_LEN: f32 = 90.0;
-pub const WEEK_LEN: usize = 0;
+pub const WEEK_LEN: usize = 5;
 
 pub struct GamePlugin;
 
@@ -180,8 +194,21 @@ impl Plugin for GamePlugin {
                     finish_day.run_if(in_state(GameState::Waiting)),
                 ),
             )
-            .add_systems(OnEnter(GameState::DayStart), (start_day, customer_end));
+            .add_systems(OnEnter(GameState::DayStart), (start_day, customer_end))
+            .add_systems(OnEnter(GameState::Reset), reset);
     }
+}
+
+fn reset(
+    mut day: ResMut<DayIndex>,
+    mut total_e: ResMut<TotalExpenses>,
+    mut total_g: ResMut<TotalGold>,
+    mut state: ResMut<NextState<GameState>>,
+) {
+    **day = 0;
+    **total_e = 0.0;
+    **total_g = 0.0;
+    state.set(GameState::DayStart);
 }
 
 fn accounting(
@@ -216,7 +243,7 @@ fn start_day(
     mut expenses: ResMut<DailyExpenses>,
     mut state: ResMut<NextState<GameState>>,
     mut timer: ResMut<DayTimer>,
-    day: Res<DayIndex>
+    day: Res<DayIndex>,
 ) {
     **gold = 0.0;
     **expenses = 0.0;
@@ -229,10 +256,7 @@ fn start_day(
     }
 }
 
-fn finish_day(
-    timer: Res<DayTimer>,
-    mut day: ResMut<DayIndex>,
-) {
+fn finish_day(timer: Res<DayTimer>, mut day: ResMut<DayIndex>) {
     if timer.finished() {
         **day += 1;
     }
