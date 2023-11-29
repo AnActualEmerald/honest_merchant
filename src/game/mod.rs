@@ -153,7 +153,7 @@ impl Reputation {
     }
 }
 
-pub const DAY_LEN: f32 = 90.0;
+pub const DAY_LEN: f32 = 60.0;
 pub const WEEK_LEN: usize = 5;
 
 pub struct GamePlugin;
@@ -256,9 +256,15 @@ fn start_day(
     }
 }
 
-fn finish_day(timer: Res<DayTimer>, mut day: ResMut<DayIndex>) {
+fn finish_day(
+    timer: Res<DayTimer>,
+    mut day: ResMut<DayIndex>,
+    mut state: ResMut<NextState<GameState>>,
+) {
+    info!("{timer:?}");
     if timer.finished() {
         **day += 1;
+        state.set(GameState::DayEnd);
     }
 }
 

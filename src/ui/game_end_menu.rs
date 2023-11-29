@@ -1,5 +1,6 @@
 use std::time::Duration;
 
+use bevy::app::AppExit;
 use bevy::prelude::*;
 use bevy_mod_picking::prelude::*;
 use bevy_tweening::*;
@@ -8,6 +9,7 @@ use crate::{
     assets::Fonts,
     game::{GameState, Reputation, TotalExpenses, TotalGold},
     utils::{
+        despawn_all,
         lenses::{BackgroundColorLens, TextLens},
         AnimatedTextBundle, Delayable, IntoAnimator, TweenDone,
     },
@@ -22,7 +24,8 @@ pub struct GameEndMenuPlugin;
 
 impl Plugin for GameEndMenuPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(GameState::GameOver), spawn_menu);
+        app.add_systems(OnEnter(GameState::GameOver), spawn_menu)
+            .add_systems(OnExit(GameState::GameOver), despawn_all::<Menu>);
     }
 }
 
@@ -235,7 +238,7 @@ fn finish_spawn(
                         200 * 4,
                     ),))
                     .insert(Style {
-                        align_self: AlignSelf::Start,
+                        // align_self: AlignSelf::Start,
                         margin: UiRect::vertical(Val::Px(30.0)),
                         ..default()
                     });
@@ -265,6 +268,42 @@ fn finish_spawn(
                         parent.spawn((
                             TextBundle::from_section(
                                 "Play again",
+                                TextStyle {
+                                    font: fonts.default.clone(),
+                                    font_size: 24.0,
+                                    color: Color::BLACK,
+                                },
+                            ),
+                            Pickable::IGNORE,
+                        ));
+                    });
+
+                #[cfg(not(target_family = "wasm"))]
+                parent
+                    .spawn((
+                        ButtonBundle {
+                            style: Style {
+                                border: UiRect::all(Val::Px(2.0)),
+                                width: Val::Auto,
+                                padding: UiRect::axes(Val::Px(20.), Val::Px(10.)),
+                                margin: UiRect::top(Val::Px(30.0)),
+                                justify_content: JustifyContent::Center,
+                                ..default()
+                            },
+                            border_color: Color::BLACK.into(),
+                            background_color: Color::NONE.into(),
+                            ..default()
+                        },
+                        On::<Pointer<Down>>::run(|mut exit: EventWriter<AppExit>| {
+                            exit.send_default();
+                        }),
+                        On::<Pointer<Over>>::listener_insert(BackgroundColor(Color::ALICE_BLUE)),
+                        On::<Pointer<Out>>::listener_insert(BackgroundColor(Color::NONE)),
+                    ))
+                    .with_children(|parent| {
+                        parent.spawn((
+                            TextBundle::from_section(
+                                "Quit",
                                 TextStyle {
                                     font: fonts.default.clone(),
                                     font_size: 24.0,

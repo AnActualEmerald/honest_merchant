@@ -109,10 +109,10 @@ fn log_states(
     cust_state: Res<State<CustomerState>>,
     menu_state: Res<State<MenuState>>,
 ) {
-    info!(
-        "Program state:\n{:?}\n{:?}\n{:?}",
-        game_state.get(),
-        cust_state.get(),
-        menu_state.get()
-    );
+    // info!(
+    //     "Program state:\n{:?}\n{:?}\n{:?}",
+    //     game_state.get(),
+    //     cust_state.get(),
+    //     menu_state.get()
+    // );
 }

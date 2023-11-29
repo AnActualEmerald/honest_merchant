@@ -1,14 +1,20 @@
 use std::time::Duration;
 
 use bevy::prelude::*;
+use bevy_eventlistener::event_listener::On;
+use bevy_tweening::{
+    lens::{TransformPositionLens, TransformRotateYLens, TransformRotationLens},
+    *,
+};
 use rand::prelude::*;
 
 use crate::{
     assets::CharacterTraits,
+    crowd::ROAD_OFFSET,
     utils::{
         despawn_all,
         text_box::{SpawnTextBox, TextBox},
-        CalcCost, PercentDiff, Ratios, Total,
+        CalcCost, IntoAnimator, PercentDiff, Ratios, Total, TweenDone,
     },
 };
 
@@ -20,6 +26,7 @@ use super::{
 #[allow(dead_code)]
 #[derive(Debug, Default, States, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum CustomerState {
+    Approach,
     Greeting,
     Request,
     Measuring,
@@ -52,9 +59,13 @@ impl AttentionState {
 pub struct WillChange;
 
 #[derive(Component)]
+pub struct CustomerEyes;
+
+#[derive(Component)]
 pub struct Customer(Handle<CharacterTraits>);
 
 pub const CUSTOMER_STAND_POINT: Vec3 = Vec3::new(0.0, 0.0, -3.0);
+const SHOP_TURN_POINT: Transform = Transform::from_xyz(CUSTOMER_STAND_POINT.x, 1.0, ROAD_OFFSET);
 
 pub struct CustomerPlugin;
 
@@ -69,7 +80,8 @@ impl Plugin for CustomerPlugin {
                     handle_submit,
                     wait_to_advance,
                     get_distracted,
-                    (attention_gizmos, handle_attention).run_if(in_state(AttentionState::Attent)),
+                    animate_distraction.run_if(in_state(CustomerState::Measuring)),
+                    handle_attention.run_if(in_state(AttentionState::Attent)),
                 ),
             )
             .add_systems(OnEnter(CustomerState::Payment), pay)
@@ -84,7 +96,24 @@ impl Plugin for CustomerPlugin {
             )
             .add_systems(
                 OnEnter(CustomerState::End),
-                (despawn_all::<Customer>, cleanup, scales::reset),
+                (walk_out, cleanup, scales::reset),
+            )
+            .add_systems(
+                OnExit(CustomerState::Measuring),
+                |mut cmd: Commands, q: Query<(Entity, &Transform), With<Customer>>| {
+                    let (ent, tr) = q.get_single().expect("Single customer");
+                    cmd.entity(ent).insert(
+                        Tween::new(
+                            EaseFunction::QuadraticInOut,
+                            Duration::from_millis(200),
+                            TransformRotationLens {
+                                start: tr.rotation,
+                                end: Quat::from_rotation_y(0f32),
+                            },
+                        )
+                        .animator(),
+                    );
+                },
             )
             .add_systems(OnEnter(CustomerState::Angry), angery)
             .add_systems(OnEnter(GameState::Customer), spawn_customer);
@@ -96,7 +125,108 @@ fn attention_gizmos(mut gizmos: Gizmos) {
     gizmos.cuboid(trans, Color::GREEN);
 }
 
-// TODO: This should animate in a customer from the crowd
+fn walk_out(mut cmd: Commands, q: Query<Entity, With<Customer>>) {
+    let walk_out = Tween::new(
+        EaseMethod::Linear,
+        Duration::from_millis(200),
+        TransformRotationLens {
+            start: Quat::from_rotation_y(0.0),
+            end: Quat::from_rotation_y(-180.0f32.to_radians()),
+        },
+    )
+    .then(Tween::new(
+        EaseFunction::QuadraticInOut,
+        Duration::from_millis(500),
+        TransformPositionLens {
+            start: CUSTOMER_STAND_POINT + Vec3::new(0.0, 1.0, 0.0),
+            end: SHOP_TURN_POINT.translation,
+        },
+    ))
+    .then(Tween::new(
+        EaseMethod::Linear,
+        Duration::from_millis(200),
+        TransformRotationLens {
+            start: Quat::from_rotation_y(180f32.to_radians()),
+            end: Quat::from_rotation_y(90f32.to_radians()),
+        },
+    ))
+    .then(
+        Tween::new(
+            EaseFunction::QuadraticIn,
+            Duration::from_millis(500),
+            TransformPositionLens {
+                start: SHOP_TURN_POINT.translation,
+                end: Vec3::new(10.0, 1.0, ROAD_OFFSET),
+            },
+        )
+        .with_completed_event(192),
+    );
+
+    let Ok(c) = q.get_single() else {
+        error!("Coudln't get single customer");
+        return;
+    };
+    cmd.entity(c).insert((
+        Animator::new(walk_out),
+        On::<TweenDone>::run(despawn_all::<Customer>),
+    ));
+}
+
+fn animate_distraction(
+    mut cmd: Commands,
+    cust_q: Query<(Entity, &Transform), With<Customer>>,
+    changed: Query<(Entity, &Transform), Added<WillChange>>,
+    attention: Res<State<AttentionState>>,
+    mut look_left: Local<bool>,
+) {
+    if attention.is_changed() && *attention == AttentionState::Attent {
+        *look_left = SmallRng::from_entropy().gen();
+    }
+
+    for (ent, tr) in changed.iter() {
+        let look = Tween::new(
+            EaseFunction::QuadraticIn,
+            Duration::from_millis(500),
+            TransformRotationLens {
+                start: tr.rotation,
+                end: Quat::from_rotation_y(
+                    (45f32 * if *look_left { 1.0 } else { -1.0 }).to_radians(),
+                ),
+            },
+        );
+        cmd.entity(ent).insert(Animator::new(look));
+    }
+
+    for (ent, tr) in cust_q.iter() {
+        if !attention.is_changed() {
+            break;
+        }
+        if *attention == AttentionState::Attent {
+            let look = Tween::new(
+                EaseFunction::QuadraticInOut,
+                Duration::from_millis(200),
+                TransformRotationLens {
+                    start: tr.rotation,
+                    end: Quat::from_rotation_y(0.0),
+                },
+            );
+            cmd.entity(ent).insert(Animator::new(look));
+        } else {
+            let look = Tween::new(
+                EaseFunction::QuadraticInOut,
+                Duration::from_millis(200),
+                TransformRotationLens {
+                    start: tr.rotation,
+                    end: Quat::from_rotation_y(
+                        (90f32 * if *look_left { 1.0 } else { -1.0 }).to_radians(),
+                    ),
+                },
+            );
+            cmd.entity(ent).insert(Animator::new(look));
+        }
+    }
+}
+
 fn spawn_customer(
     mut cmd: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -115,6 +245,37 @@ fn spawn_customer(
         .map(|v| v.color)
         .unwrap_or(Color::rgb(1.0, 0.0, 1.0));
 
+    let customer_spawn = Transform::from_xyz(-10.0, 1.0, ROAD_OFFSET - 2.0)
+        .with_rotation(Quat::from_rotation_y(90.0f32.to_radians()));
+
+    let walk_in = Tween::new(
+        EaseFunction::QuadraticOut,
+        Duration::from_millis(1000),
+        TransformPositionLens {
+            start: customer_spawn.translation,
+            end: SHOP_TURN_POINT.translation,
+        },
+    )
+    .then(Tween::new(
+        EaseMethod::Linear,
+        Duration::from_millis(100),
+        TransformRotateYLens {
+            start: customer_spawn.rotation.y,
+            end: 0.0,
+        },
+    ))
+    .then(
+        Tween::new(
+            EaseFunction::QuadraticOut,
+            Duration::from_millis(500),
+            TransformPositionLens {
+                start: SHOP_TURN_POINT.translation,
+                end: CUSTOMER_STAND_POINT + Vec3::new(0.0, 1.0, 0.0),
+            },
+        )
+        .with_completed_event(191),
+    );
+
     cmd.spawn((
         PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Capsule {
@@ -123,13 +284,60 @@ fn spawn_customer(
                 ..default()
             })),
             material: materials.add(color.into()),
-            transform: Transform::from_translation(CUSTOMER_STAND_POINT + Vec3::new(0.0, 1.0, 0.0)),
+            transform: customer_spawn,
             ..default()
         },
+        On::<TweenDone>::run(|mut state: ResMut<NextState<CustomerState>>| {
+            state.set(CustomerState::Greeting)
+        }),
+        Animator::new(walk_in),
         Customer(char),
-    ));
+    ))
+    .with_children(|parent| {
+        parent
+            .spawn((
+                SpatialBundle {
+                    transform: Transform::from_xyz(0.0, 1.0, 0.0),
+                    ..default()
+                },
+                CustomerEyes,
+            ))
+            .with_children(|parent| {
+                for i in [-1.0, 1.0] {
+                    parent
+                        .spawn(PbrBundle {
+                            mesh: meshes.add(
+                                shape::Icosphere {
+                                    radius: 0.25,
+                                    ..default()
+                                }
+                                .try_into()
+                                .expect("Sphere :("),
+                            ),
+                            material: materials.add(Color::WHITE.into()),
+                            transform: Transform::from_xyz(0.27 * i, 0.0, 0.8),
+                            ..default()
+                        })
+                        .with_children(|parent| {
+                            parent.spawn(PbrBundle {
+                                mesh: meshes.add(
+                                    shape::Icosphere {
+                                        radius: 0.18,
+                                        ..default()
+                                    }
+                                    .try_into()
+                                    .expect("Sphere again :("),
+                                ),
+                                material: materials.add(Color::BLACK.into()),
+                                transform: Transform::from_xyz(0.02 * i, 0.0, 0.08),
+                                ..default()
+                            });
+                        });
+                }
+            });
+    });
 
-    state.set(CustomerState::Greeting);
+    state.set(CustomerState::Approach);
 }
 
 fn get_distracted(
