@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use assets::{AssetPlugin, Splash};
-use bevy::prelude::*;
+use bevy::{asset::AssetMetaCheck, prelude::*};
 use bevy_mod_billboard::plugin::BillboardPlugin;
 use bevy_mod_picking::prelude::*;
 use bevy_tweening::TweeningPlugin;
@@ -10,7 +10,7 @@ use game::{CustomerState, GamePlugin, GameState};
 use input::InputPlugin;
 use player::PlayerPlugin;
 use ui::{MenuState, UiPlugin};
-use utils::{every, UtilPlugin, despawn_all};
+use utils::{despawn_all, every, UtilPlugin};
 use world::WorldPlugin;
 
 mod assets;
@@ -29,6 +29,7 @@ pub enum AppState {
     #[default]
     Load,
     Done,
+    Error,
 }
 
 #[derive(Component)]
@@ -36,16 +37,24 @@ struct SplashScreen;
 
 fn main() {
     App::new()
+        .insert_resource(AssetMetaCheck::Never)
         .add_state::<AppState>()
         .add_plugins((
-            DefaultPlugins.set(WindowPlugin {
-                primary_window: Some(Window {
-                    resolution: WINDOW_SIZE.into(),
-                    resizable: false,
+            DefaultPlugins
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        title: "An Honest Merchant".into(),
+                        resolution: WINDOW_SIZE.into(),
+                        resizable: false,
+                        ..default()
+                    }),
+                    ..default()
+                })
+                .set(bevy::asset::AssetPlugin {
+                    processed_file_path: "assets".into(),
+                    mode: AssetMode::Unprocessed,
                     ..default()
                 }),
-                ..default()
-            }),
             TweeningPlugin,
             DefaultPickingPlugins,
             BillboardPlugin,
@@ -68,6 +77,9 @@ fn main() {
                 log_errors.run_if(
                     in_state(GameState::Error).and_then(every(Duration::from_secs_f32(0.5))),
                 ),
+                log_errors.run_if(
+                    in_state(AppState::Error).and_then(every(Duration::from_secs_f32(0.5))),
+                ),
             ),
         )
         .add_systems(OnExit(GameState::Loading), despawn_all::<SplashScreen>)
@@ -75,6 +87,7 @@ fn main() {
 }
 
 fn setup(mut cmd: Commands, splash: Res<Splash>, mut state: ResMut<NextState<GameState>>) {
+    info!("Spawn loading screen");
     cmd.spawn((
         NodeBundle {
             style: Style {
@@ -88,15 +101,20 @@ fn setup(mut cmd: Commands, splash: Res<Splash>, mut state: ResMut<NextState<Gam
             background_color: Color::BLACK.into(),
             ..default()
         },
-        SplashScreen
-    )).with_children(|parent| {
-        parent.spawn(TextBundle::from_section("Loading...", TextStyle {
-            font: splash.font.clone(),
-            font_size: 72.0,
-            ..default()
-        }));
+        SplashScreen,
+    ))
+    .with_children(|parent| {
+        parent.spawn(TextBundle::from_section(
+            "Loading...",
+            TextStyle {
+                font: splash.font.clone(),
+                font_size: 72.0,
+                ..default()
+            },
+        ));
     });
 
+    info!("Start loading game assets");
     state.set(GameState::Loading);
 }
 
@@ -104,10 +122,9 @@ fn log_errors() {
     error!("Error loading assets");
 }
 
-fn log_states(
-    game_state: Res<State<GameState>>,
-    cust_state: Res<State<CustomerState>>,
-    menu_state: Res<State<MenuState>>,
+fn log_states(// game_state: Res<State<GameState>>,
+    // cust_state: Res<State<CustomerState>>,
+    // menu_state: Res<State<MenuState>>,
 ) {
     // info!(
     //     "Program state:\n{:?}\n{:?}\n{:?}",

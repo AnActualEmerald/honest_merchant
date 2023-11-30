@@ -55,10 +55,16 @@ impl Plugin for AssetPlugin {
     fn build(&self, app: &mut App) {
         app.init_asset::<CharacterTraits>()
             .init_asset_loader::<CharacteristicsLoader>()
-            .add_loading_state(LoadingState::new(AppState::Load).continue_to_state(AppState::Done))
+            .add_loading_state(
+                LoadingState::new(AppState::Load)
+                    .continue_to_state(AppState::Done)
+                    .on_failure_continue_to_state(AppState::Error),
+            )
             .add_collection_to_loading_state::<_, Splash>(AppState::Load)
             .add_loading_state(
-                LoadingState::new(GameState::Loading).continue_to_state(GameState::MainMenu),
+                LoadingState::new(GameState::Loading)
+                    .continue_to_state(GameState::MainMenu)
+                    .on_failure_continue_to_state(GameState::Error),
             )
             .add_collection_to_loading_state::<_, Fonts>(GameState::Loading)
             .add_collection_to_loading_state::<_, Meshes>(GameState::Loading)
@@ -111,7 +117,6 @@ impl AssetLoader for CharacteristicsLoader {
             let mut raw = Vec::new();
             reader.read_to_end(&mut raw).await?;
             let parsed = ron::de::from_bytes(&raw)?;
-            info!("{parsed:?}");
             Ok(parsed)
         })
     }

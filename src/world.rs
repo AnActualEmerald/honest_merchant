@@ -52,15 +52,18 @@ fn spawn_world(
         color: Color::WHITE,
         brightness: 0.2,
     });
-    // cmd.spawn(PointLightBundle {
-    //     point_light: PointLight {
-    //         intensity: 1500.0,
-    //         shadows_enabled: true,
-    //         ..default()
-    //     },
-    //     transform: Transform::from_xyz(-1.0, 8.0, 4.0),
-    //     ..default()
-    // });
+    cmd.spawn(PointLightBundle {
+        point_light: PointLight {
+            intensity: 200.0,
+            radius: 0.05,
+            range: 0.1,
+            color: Color::ORANGE_RED,
+            shadows_enabled: true,
+            ..default()
+        },
+        transform: Transform::from_xyz(-1.0, 2.0, 2.0),
+        ..default()
+    });
     cmd.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
             shadows_enabled: true,

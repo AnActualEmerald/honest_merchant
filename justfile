@@ -13,3 +13,6 @@ release-web-run: release-web
 
 dev:
     cargo watch -x run
+
+release:
+    cargo build --release
