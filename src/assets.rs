@@ -13,14 +13,14 @@ use crate::{
 
 #[derive(AssetCollection, Resource)]
 pub struct Meshes {
-    #[asset(path = "stand.gltf")]
-    pub stand: Handle<Scene>
+    #[asset(path = "stand.glb")]
+    pub stand: Handle<Scene>,
 }
 
 #[derive(AssetCollection, Resource)]
 pub struct Images {
     #[asset(path = "example.png")]
-    pub example: Handle<Image>
+    pub example: Handle<Image>,
 }
 
 #[derive(AssetCollection, Resource)]

@@ -1,6 +1,6 @@
 use bevy::{pbr::CascadeShadowConfigBuilder, prelude::*};
 
-use crate::{game::GameState, assets::Meshes};
+use crate::{assets::Meshes, game::GameState};
 
 pub struct WorldPlugin;
 
@@ -73,8 +73,8 @@ fn spawn_world(
             ..default()
         }
         .into(),
-        transform: Transform::from_xyz(0.0, 10.0, 10.0)
-            .looking_at(Vec3::new(0.0, 0.0, 5.0), Vec3::Y),
+        transform: Transform::from_xyz(0.0, 10.0, -10.0)
+            .looking_at(Vec3::new(1.0, 0.0, 0.0), Vec3::Y),
         ..default()
     });
 }
