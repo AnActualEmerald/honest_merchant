@@ -6,11 +6,11 @@ use bevy_mod_billboard::plugin::BillboardPlugin;
 use bevy_mod_picking::prelude::*;
 use bevy_tweening::TweeningPlugin;
 use crowd::CrowdPlugin;
-use game::{CustomerState, GamePlugin, GameState};
+use game::{GamePlugin, GameState};
 use input::InputPlugin;
 use player::PlayerPlugin;
 use sound::SoundPlugin;
-use ui::{MenuState, UiPlugin};
+use ui::{UiPlugin};
 use utils::{despawn_all, every, UtilPlugin};
 use world::WorldPlugin;
 

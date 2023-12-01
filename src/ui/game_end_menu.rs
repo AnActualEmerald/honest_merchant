@@ -11,7 +11,7 @@ use crate::{
     utils::{
         despawn_all,
         lenses::{BackgroundColorLens, TextLens},
-        AnimatedTextBundle, Delayable, IntoAnimator, TweenDone,
+        AnimatedTextBundle, Delayable, TweenDone,
     },
 };
 
