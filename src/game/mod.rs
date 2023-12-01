@@ -1,5 +1,3 @@
-use std::ops::RangeInclusive;
-
 use bevy::{prelude::*, utils::HashMap};
 use rand::prelude::*;
 use serde::Deserialize;
@@ -14,9 +12,10 @@ mod goods;
 mod scales;
 
 pub use customer::CustomerState;
-pub use goods::ItemType;
 pub use goods::ITEM_COST;
+pub use goods::{AddItem, ItemType, RemoveItem};
 pub use scales::ScaleContents;
+pub use scales::{AddWeight, RemoveWeight, Submit};
 
 #[derive(Resource, Default, Deref, DerefMut, Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct TotalGold(f32);

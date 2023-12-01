@@ -42,7 +42,7 @@ impl Plugin for UtilPlugin {
                 )
                     .run_if(resource_exists::<Fonts>()),
             )
-            .add_systems(PostStartup, initial_offset);
+            .add_systems(Update, initial_offset);
     }
 }
 
@@ -81,7 +81,7 @@ pub fn every(duration: Duration) -> impl FnMut(Local<Duration>, Res<Time>) -> bo
     }
 }
 
-fn initial_offset(mut q: Query<(&mut Transform, &Offset)>) {
+fn initial_offset(mut q: Query<(&mut Transform, &Offset), Added<Offset>>) {
     for (mut tr, off) in q.iter_mut() {
         tr.translation += **off;
     }

@@ -511,6 +511,7 @@ fn handle_review(
             info!("Diff: {}", target.diff(&**contents));
             let cust = q.get_single().expect("No customer?");
             let traits = chars.get(&cust.0).expect("Unable to get traits");
+
             // customers can tell when the amount isn't correct
             if traits.attention_type.sus_threshold() < target.diff(&**contents)
             // don't let customers be fooled without using the sus weights
@@ -535,9 +536,10 @@ fn handle_submit(
     mut er: EventReader<Submit>,
     mut ew: EventWriter<Advance>,
     state: Res<State<CustomerState>>,
+    contents: Res<ScaleContents>,
 ) {
     for _event in er.read() {
-        if CustomerState::Measuring == **state {
+        if CustomerState::Measuring == **state && contents.total() > 0.0 {
             ew.send_default();
         }
     }

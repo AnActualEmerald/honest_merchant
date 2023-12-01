@@ -6,7 +6,10 @@ use bevy_tweening::{lens::TransformRotationLens, *};
 
 use crate::ui::tooltips::{TooltipBundle, TooltipText};
 
-use super::goods::{ItemType, RemoveItem, ITEM_COLORS};
+use super::{
+    goods::{ItemType, RemoveItem, ITEM_COLORS},
+    GameState,
+};
 
 pub const MAX_ROTATION_DEGREES: f32 = 30.0;
 pub const SCALE_WIDTH: f32 = 3.0;
@@ -98,11 +101,17 @@ impl Plugin for ScalesPlugin {
             .add_event::<SusEvent>()
             .init_resource::<ScaleWeights>()
             .init_resource::<ScaleContents>()
-            .add_systems(Startup, setup_scales)
+            .add_systems(OnEnter(GameState::MainMenu), setup_scales)
             // .add_systems(PostUpdate, place_weights.after(TransformSystem::TransformPropagate))
             .add_systems(
                 Update,
-                (add_weights, remove_weights, update_scale_rot, scale_piles, update_sus.run_if(resource_changed::<ScaleWeights>())),
+                (
+                    add_weights,
+                    remove_weights,
+                    update_scale_rot,
+                    scale_piles,
+                    update_sus.run_if(resource_changed::<ScaleWeights>()),
+                ),
             )
             .add_systems(
                 Update,

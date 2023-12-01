@@ -9,6 +9,7 @@ use crowd::CrowdPlugin;
 use game::{CustomerState, GamePlugin, GameState};
 use input::InputPlugin;
 use player::PlayerPlugin;
+use sound::SoundPlugin;
 use ui::{MenuState, UiPlugin};
 use utils::{despawn_all, every, UtilPlugin};
 use world::WorldPlugin;
@@ -18,6 +19,7 @@ mod crowd;
 mod game;
 mod input;
 mod player;
+mod sound;
 mod ui;
 mod utils;
 mod world;
@@ -68,6 +70,7 @@ fn main() {
             GamePlugin,
             PlayerPlugin,
             UiPlugin,
+            SoundPlugin,
         ))
         .add_systems(OnEnter(AppState::Done), setup)
         .add_systems(

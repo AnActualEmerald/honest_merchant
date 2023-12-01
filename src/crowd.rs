@@ -5,6 +5,8 @@ use bevy::prelude::*;
 use bevy_tweening::{lens::TransformPositionLens, *};
 use rand::prelude::*;
 
+use crate::game::GameState;
+
 pub const CROWD_SIZE: u8 = 10;
 
 #[derive(Component)]
@@ -20,7 +22,7 @@ pub struct CrowdPlugin;
 impl Plugin for CrowdPlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<CrowdTextures>()
-            .add_systems(Startup, spawn_crowd)
+            .add_systems(OnEnter(GameState::MainMenu), spawn_crowd)
             .add_systems(Update, randomize_crowd);
     }
 }

@@ -10,9 +10,9 @@ use leafwing_input_manager::action_state::ActionState;
 use serde::Deserialize;
 use strum::{EnumCount, FromRepr};
 
-use crate::{utils::Offset, ui::tooltips::TooltipBundle, input::Action};
+use crate::{input::Action, ui::tooltips::TooltipBundle, utils::Offset};
 
-use super::scales::ScaleContents;
+use super::{scales::ScaleContents, GameState};
 
 #[derive(
     Component,
@@ -111,7 +111,7 @@ impl Plugin for GoodsPlugin {
             .add_event::<RemoveItem>()
             .add_event::<Open>()
             .add_event::<Close>()
-            .add_systems(Startup, spawn_goods)
+            .add_systems(OnEnter(GameState::MainMenu), spawn_goods)
             .add_systems(
                 Update,
                 (
@@ -143,7 +143,7 @@ fn spawn_goods(
         On::<Pointer<Over>>::send_event::<Open>(),
         On::<Pointer<Out>>::send_event::<Close>(),
         Offset::default(),
-        TooltipBundle::new("Spider Eyes")
+        TooltipBundle::new("Spider Eyes"),
     ));
 
     cmd.spawn((
@@ -158,7 +158,7 @@ fn spawn_goods(
         On::<Pointer<Over>>::send_event::<Open>(),
         On::<Pointer<Out>>::send_event::<Close>(),
         Offset::new(0.3, 0.0, 0.0),
-        TooltipBundle::new("Berries")
+        TooltipBundle::new("Berries"),
     ));
 
     cmd.spawn((
@@ -173,7 +173,7 @@ fn spawn_goods(
         On::<Pointer<Over>>::send_event::<Open>(),
         On::<Pointer<Out>>::send_event::<Close>(),
         Offset::new(0.6, 0.0, 0.0),
-        TooltipBundle::new("Green Mush")
+        TooltipBundle::new("Green Mush"),
     ));
     cmd.spawn((
         PbrBundle {
@@ -187,7 +187,7 @@ fn spawn_goods(
         On::<Pointer<Over>>::send_event::<Open>(),
         On::<Pointer<Out>>::send_event::<Close>(),
         Offset::new(0.9, 0.0, 0.0),
-        TooltipBundle::new("Vibrant Syrup")
+        TooltipBundle::new("Vibrant Syrup"),
     ));
 }
 
@@ -200,7 +200,11 @@ fn handle_add(
     for event in er.read() {
         let Ok(t) = q.get(event.0) else { continue };
 
-        let amnt = if actions.pressed(Action::Mod) { 0.5 } else { 1.0 };
+        let amnt = if actions.pressed(Action::Mod) {
+            0.5
+        } else {
+            1.0
+        };
 
         if let Some(val) = contents.get_mut(t) {
             *val += amnt;
@@ -219,7 +223,11 @@ fn handle_remove(
     for event in er.read() {
         let Ok(t) = q.get(event.0) else { continue };
 
-        let amnt = if actions.pressed(Action::Mod) { 0.5 } else { 1.0 };
+        let amnt = if actions.pressed(Action::Mod) {
+            0.5
+        } else {
+            1.0
+        };
 
         if let Some(val) = contents.get_mut(t) {
             *val -= amnt;

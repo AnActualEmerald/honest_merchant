@@ -32,6 +32,24 @@ pub struct Fonts {
 }
 
 #[derive(AssetCollection, Resource)]
+pub struct Sounds {
+    #[asset(path = "sounds/pop1.ogg")]
+    pub pop1: Handle<AudioSource>,
+    #[asset(path = "sounds/pop2.ogg")]
+    pub pop2: Handle<AudioSource>,
+    #[asset(path = "sounds/scoop_wet.ogg")]
+    pub scoop_wet: Handle<AudioSource>,
+    #[asset(path = "sounds/scoop_hard.ogg")]
+    pub scoop_hard: Handle<AudioSource>,
+    #[asset(path = "sounds/bgmusic.ogg")]
+    pub music: Handle<AudioSource>,
+    #[asset(path = "sounds/trash.ogg")]
+    pub trash: Handle<AudioSource>,
+    #[asset(path = "sounds/bell.ogg")]
+    pub bell: Handle<AudioSource>,
+}
+
+#[derive(AssetCollection, Resource)]
 pub struct Characters {
     #[asset(path = "customers/dumb.chr.ron")]
     pub dumb: Handle<CharacterTraits>,
@@ -69,6 +87,7 @@ impl Plugin for AssetPlugin {
             .add_collection_to_loading_state::<_, Fonts>(GameState::Loading)
             .add_collection_to_loading_state::<_, Meshes>(GameState::Loading)
             .add_collection_to_loading_state::<_, Images>(GameState::Loading)
+            .add_collection_to_loading_state::<_, Sounds>(GameState::Loading)
             .add_collection_to_loading_state::<_, Characters>(GameState::Loading);
     }
 }
